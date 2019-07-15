@@ -1,2 +1,2 @@
-Paste the link of the jupyter notebook .ipynb into https://nbviewer.jupyter.org/  
-for better formatting and if not rendering in GitHub
+Use https://nbviewer.jupyter.org/github/Skywind555/Personal-Projects/blob/master/BattleriteAPI.ipynb
+for better formatting and fast rendering

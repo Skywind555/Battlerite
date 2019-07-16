@@ -1,5 +1,3 @@
-'''Need to run / edit json links on new patches to have all values mapped for new cosmetics'''
-
 import requests
 import pandas as pd
 import json
@@ -14,7 +12,6 @@ header = {
 
 overall_urls = []
 resetlink = 0
-#Roughly time of new patch
 current_datetime = '2019-07-10T09:00:00Z'
 link = "https://api.developer.battlerite.com/shards/global/matches"
 current_datetime_clean = datetime.datetime.strptime(current_datetime, '%Y-%m-%dT%H:%M:%SZ')
@@ -32,7 +29,7 @@ gameplay_json = json.loads(requests.get('https://raw.githubusercontent.com/Stunl
 vanity_json = json.loads(requests.get('https://raw.githubusercontent.com/StunlockStudios/battlerite-assets/master/mappings/67104/AccountVanity.json').text)
 #English.txt is the same as English.ini except in .txt extension
 
-with open('English.txt') as f:
+with open(os.path.join('Reference Files','English.txt')) as f:
     content = f.readlines()
 content = [x.strip() for x in content] 
 
@@ -232,6 +229,7 @@ FinalMaps.to_csv(os.path.join('Reference Files', 'MapID_Crosswalk.csv'), index =
 champid = []
 lookupid = []
 role = []
+icon = []
 
 champions = gameplay_json['characters']
 
@@ -239,8 +237,10 @@ for i in range(len(champions)):
     champid.append(champions[i]['typeID'])
     lookupid.append(champions[i]['name'].upper())
     role.append(champions[i]['archetype'].upper())
+    icon.append(champions[i]['icon'])
     
-ChampDf = pd.DataFrame(list(zip(champid, lookupid, role)), columns = ['Champion ID', 'Champion Lookup ID', 'Role'])
+ChampDf = pd.DataFrame(list(zip(champid, lookupid, role, icon)), 
+                       columns = ['Champion ID', 'Champion Lookup ID', 'Role', 'Icon File Name'])
 
 FinalChamps = pd.merge(ChampDf, CodeDf, how = 'left', left_on = 'Champion Lookup ID', right_on = 'Code')
 FinalChamps.to_csv(os.path.join('Reference Files','Champion_Crosswalk_Full.csv'), index = False)
@@ -277,7 +277,7 @@ for i in range(len(avatars)):
     value.append(avatars[i]['File'])
     imageid.append(avatars[i]['Hash'])
     
-AvatarDf = pd.DataFrame(list(zip(avatarid, value, imageid)), columns = ['Avatar ID', 'Value', 'Image File Name'])
+AvatarDf = pd.DataFrame(list(zip(avatarid, value, imageid)), columns = ['Avatar ID', 'Value', 'Avatar File Name'])
 AvatarDf.to_csv(os.path.join('Reference Files', 'Avatar_Crosswalk.csv'), index = False)
 
 '''Get Outfit Crosswalk'''

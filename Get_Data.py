@@ -1485,12 +1485,12 @@ def get_data(header, current_datetime, stepsize, days_to_cover, Attachments, Ava
 
                 for step in range(1, (m.floor(len(AllGames)/stepsize)+1)):
 
-                    last_gameID = AllGames.loc[initial_index, 'Game ID']
+                    last_gameID = AllGames.loc[initial_index, 'Game_ID']
 
                     #Check the next 30 rows. Max if last row is one player for the first round + 5 then 6*4 rounds = 29
                     for i in range(30):
                         current_index += 1
-                        if AllGames.loc[current_index, 'Game ID'] != last_gameID:
+                        if AllGames.loc[current_index, 'Game_ID'] != last_gameID:
                             break
 
                     upper_bound = current_index - 1
@@ -1539,12 +1539,11 @@ def get_data(header, current_datetime, stepsize, days_to_cover, Attachments, Ava
         
         #Output on except to determine root of error
         print('SCRIPT STOPPED ERROR')
-        AllGames.to_csv()
         return (AllGames, LeaverDf, current_datetime, json_data, round_info, url)
     
 
     
-AllGames, LeaverDf, date, json_data, round_info, url = get_data(header, current_datetime, stepsize = 14000, days_to_cover = 2, Attachments,
+AllGames, LeaverDf, date, json_data, round_info, url = get_data(header, current_datetime, 9000, 3, Attachments,
                                                                 Avatars, Battlerites, Champions, MapIDs, Mounts, Outfits, Poses, Regions,
                                                                 Titles)
         

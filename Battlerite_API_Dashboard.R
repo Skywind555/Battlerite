@@ -7,12 +7,20 @@ library('DT')
 library('tidyr')
 library('stringr')
 library('fastDummies')
+library('readxl')
 
-setwd('C:/Users/skywi/Desktop/Battlerite')
+setwd('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Data/2019/July/10')
 
-df = read_csv('df.csv')
+df <- read_csv('Jul-10-2019_1.csv')
+region_coordinates <- read_excel('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Reference Files/region.xlsx')
+#Remove the ally and enemy data other than comp/team roles
+df <- df[, c(1:73, 112, 113)]
 
 df$Champion <- factor(df$Champion)
+df$Region <- factor(df$Region)
+df$League <- factor(df$League, levels = rev(c('Grand Champion', 'Champion', 'Diamond', 'Platinum', 'Gold',
+                                          'Silver', 'Bronze')), ordered = TRUE)
+region_coordinates$Group <- factor(region_coordinates$Group)
 df$`Battlerite 1` <- factor(df$`Battlerite 1`)
 df$`Battlerite 2` <- factor(df$`Battlerite 2`)
 df$`Battlerite 3` <- factor(df$`Battlerite 3`)
@@ -20,6 +28,10 @@ df$`Battlerite 4` <- factor(df$`Battlerite 4`)
 df$`Battlerite 5` <- factor(df$`Battlerite 5`)
 
 unique_champions <- unique(df$Champion)
+
+#Convert seconds to hours and round up to use in input slider
+df <- mutate(df, Total_Time_Played = ceiling(Total_Time_Played/3600),
+                 Champion_Time_Played = ceiling(Champion_Time_Played/3600))
 
 
 #Filter to champion
@@ -73,23 +85,15 @@ ui <- navbarPage('Navbar',
                                    selectInput(inputId = 'champion',
                                                label = 'Champion',
                                                multiple = FALSE,
-                                               choices = c(NULL, levels(df$Champion)),
-                                               selected = NULL)
+                                               choices = c('None', levels(df$Champion)),
+                                               selected = 'None')
                                    
                             ),
                             column(width = 4,
-                                   sliderInput(inputId = 'total_played',
-                                               label = 'Total Time Played:',
-                                               min = 0,
-                                               max = max(df$`Total Time Played`, na.rm = TRUE),
-                                               value = c(0, max(df$`Total Time Played`, na.rm = TRUE)))
+                                   uiOutput('Interactive_Slider1')
                             ),
                             column(width = 4,
-                                   sliderInput(inputId = 'champ_played',
-                                               label = 'Total Time Champion Played:',
-                                               min = 0,
-                                               max = max(df$`Character Time Played`),
-                                               value = c(0, max(df$`Character Time Played`)))
+                                   uiOutput('Interactive_Slider2')
                             )
                           ),
                           
@@ -106,6 +110,7 @@ ui <- navbarPage('Navbar',
                           
                           fluidRow(
                             column(width = 12,
+                                   htmlOutput('Chosen_Region'),
                                    leafletOutput(outputId = 'Region'),
                                    actionButton(inputId = 'unfilterRegion',
                                                 label = 'Unfilter Region')
@@ -257,6 +262,250 @@ ui <- navbarPage('Navbar',
 
 server <- function(input, output) {
   
+  ###############
+  ###############
+  ###FUNCTIONS###
+  ###############
+  ###############
+  
+  
+  #Filter data on champion select first
+  
+  
+  create_filtered_data <- function(champ_df, input_champion, input_total_time_played_min, input_total_time_played_max, 
+                                   input_champ_played_min, input_champ_played_max,
+                                   filtered_region, filtered_league, filtered_matchtype,
+                                   filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
+                                   filtered_outfit, filtered_attachment, filtered_pose) {
+    #Only include if have selected a champion
+    req(input_champion != 'None')
+    
+    #Filter total time played
+    data <- filter(champ_df, between(Total_Time_Played, input_total_time_played_min, input_total_time_played_max))
+    
+    #Filter champ time played
+    data <- filter(data, between(Champion_Time_Played, input_champ_played_min, input_champ_played_max))
+    
+    #Filter on region
+    if (filtered_region != 0) {
+      data <- filter(data, Region %in% filtered_region)
+    }
+    
+    #Filter on number of battlerites selected, up to five
+    #if (sum(ifelse(filtered_battlerites == 0, 1, 0)) == 4) {
+      
+     # data <- filter(data, filtered_battlerites[1] == 1)
+      
+  #  } else if (sum(ifelse(filtered_battlerites == 0, 1, 0)) == 3) {
+      
+   #   data <- filter(data, filtered_battlerites[1] == 1) %>%
+    #    filter(filtered_battlerites[2] == 1)
+      
+  #  } else if (sum(ifelse(filtered_battlerites == 0, 1, 0)) == 2) {
+      
+   #   data <- filter(data, filtered_battlerites[1] == 1) %>%
+    #    filter(filtered_battlerites[2] == 1) %>%
+     #   filter(filtered_battlerites[3] == 1)
+      
+    #} else if (sum(ifelse(filtered_battlerites == 0, 1, 0)) == 1) {
+      
+    #  data <- filter(data, filtered_battlerites[1] == 1) %>%
+     #   filter(filtered_battlerites[2] == 1) %>%
+      #  filter(filtered_battlerites[3] == 1) %>%
+       # filter(filtered_battlerites[4] == 1)
+      
+   # } else if (sum(ifelse(filtered_battlerites == 0, 1, 0)) == 0) {
+      
+    #  data <- filter(data, filtered_battlerites[1] == 1) %>%
+    #    filter(filtered_battlerites[2] == 1) %>%
+    #    filter(filtered_battlerites[3] == 1) %>%
+    #    filter(filtered_battlerites[4] == 1) %>%
+    #    filter(filtered_battlerites[5] == 1)
+      
+ #   }
+    
+    #Filter on League
+    if (filtered_league != 0) {
+      data <- filter(data, League %in% filtered_league)
+    }
+    
+    #Filter on Match Type (Need to add solo queue in one column in match type)
+    if (filtered_matchtype != 0) {
+      data <- filter(data, Match_Type %in% filtered_matchtype)
+    }
+    
+    #Filter on Map played
+    if (filtered_map != 0) {
+      data <- filter(data, Map %in% filtered_map)
+    }
+    
+    #Filter on casual vs ranked
+    if (filtered_casual != 0) {
+      data <- filter(data, Ranking_Type %in% filtered_casual)
+    }
+      
+    #Filter on Mount
+    if (filtered_mount != 0) {
+      data <- filter(data, Mount %in% filtered_mount)
+    }
+    
+    #Filter on Title
+    if (filtered_title != 0) {
+      data <- filter(data, Title %in% filtered_title)
+    }
+    
+    #Filter on Avatar
+    if (filtered_avatar != 0) {
+      data <- filter(data, Avatar %in% filtered_avatar)
+    }
+    
+    #Filter on Outfit
+    if (filtered_outfit != 0) {
+      data <- filter(data, Outfit %in% filtered_outfit)
+    }
+    
+    #Filter on Attachment/Weapon
+    if (filtered_attachment != 0) {
+      data <- filter(data, Attachment %in% filtered_attachment)
+    }
+    
+    #Filter on Pose
+    if (filtered_pose != 0) {
+      data <- filter(data, Pose %in% filtered_pose)
+    }
+    
+    return(data)
+    
+  }
+
+  
+  ###Observe Events###
+  
+  
+  
+  #Region
+  OE_filterRegion <- function(filtered_region, input_Region_marker_click_id) {
+    
+    filtered_region(input_Region_marker_click_id)
+    
+  }
+  
+  #League
+  OE_filterLeague <- function(common_agg_df, filtered_league, input_filterLeague_y) {
+    
+    data <- common_agg_df
+    
+    if (round(input_filterLeague_y) > length(levels(fct_drop(data$League)))) {
+      
+      filtered_League(levels(fct_drop(data$League))[length(levels(fct_drop(data$League)))])
+      
+    } else if (round(input_filterLeague_y) <= 1) {
+      
+      filtered_League(levels(fct_drop(data$League))[1])
+      
+    } else {
+      
+      filtered_League(levels(data$League)[round(input_filterLeague_y)])
+      
+    }
+    
+  }
+  
+  ###Aggregates###
+  
+  pre_agg <- function(filtered_data, measure, variable) {
+    
+    var <- as.name(variable)
+    
+    if (measure == 'winrate') {
+      
+      data <- filtered_data %>%
+        select(Game_ID, User_ID, Round_Won, !!var) %>%
+        group_by(Game_ID, User_ID, !!var) %>%
+        summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
+      
+      data
+      
+      return(data)
+      
+    }
+    
+    
+  }
+  
+  region_agg <- function(pre_agg_data, measure, ref_regions) {
+    
+    if (measure == 'winrate') {
+    
+    data <- pre_agg_data %>%
+      ungroup() %>%
+      select(Region, Game_Won) %>%
+      group_by(Region) %>%
+      summarize(Win_Rate = mean(Game_Won)) %>%
+      mutate(Region = fct_reorder(Region, Win_Rate), Win_Rate = round(Win_Rate*100, 2))
+    }
+    
+    ref_regions$Region <- factor(ref_regions$Region, levels = levels(data$Region))
+    
+    #Add coordinates
+    coord_data <- inner_join(x = data, y = ref_regions, by = c('Region' = 'Region'))
+    
+    return(coord_data)
+    
+  }
+  
+  common_agg <- function(pre_agg_data, measure, variable) {
+    
+    var <- as.name(variable)
+    
+    if (measure == 'winrate') {
+      
+      data <- pre_agg_data %>%
+        ungroup() %>%
+        select(!!var, Game_Won) %>%
+        group_by(!!var) %>%
+        summarize(Win_Rate = mean(Game_Won)) %>%
+        mutate(!!var := fct_reorder(!!var, Win_Rate), Win_Rate = round(Win_Rate*100, 2))
+    }
+    
+    return(data)
+    
+  }
+  
+  
+  ###Plots###
+  
+  create_region_map <- function(region_df, input_champion) {
+    
+    req(input_champion != 'None')
+    
+    pal <- colorFactor(c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00"), 
+                            levels(region_df$Group))
+    
+    m <- leaflet(data = region_df) %>%
+      addTiles() %>%
+      addCircleMarkers(lng = ~Longitude,
+                       lat = ~Latitude,
+                       stroke = FALSE,
+                       layerId = ~Region,
+                       color = ~pal(Group),
+                       fillOpacity = 1,
+                       radius = ~ifelse(Win_Rate <= 30, 3,
+                                        ifelse(Win_Rate <= 40, 4,
+                                               ifelse(Win_Rate <= 45, 5, 
+                                                      ifelse(Win_Rate <= 50, 6,
+                                                             ifelse(Win_Rate <= 55, 7, 
+                                                                    ifelse(Win_Rate <= 60, 8, 
+                                                                           ifelse(Win_Rate <= 65, 9,
+                                                                                  ifelse(Win_Rate <= 70, 10,
+                                                                                         ifelse(Win_Rate <= 75, 11, 13))))))))),
+                       label = paste('Server: ', region_df$Region,
+                                     ' | City: ', region_df$City,
+                                     ' | Win Rate: ', region_df$Win_Rate)
+      )
+    return(m)
+    
+  }
   
   
   
@@ -269,23 +518,253 @@ server <- function(input, output) {
   
   
   
+  #Group bars by 2v2, 3v3, solo queue etc stacked
+  
+  create_league_plot <- function(league_df) {
+    
+    bar <- ggplot(data = league_df, aes(x = League, y = Win_Rate)) +
+      geom_bar(width = 1, stat = 'identity') +
+      coord_flip() +
+      ylab('Win Rate') +
+      xlab('League')
+     
+    
+    return(bar)
+    
+  }
+
+  
+  ### Labels ###
+  
+  create_region_label <- function(filtered_region) {
+    
+    req(filtered_region != 0)
+    
+    string <- HTML(paste0('<font size = "5">You have selected ', filtered_region, '</font>'))
+    
+    return(string)
+    
+  }
+  
+  create_tooltip <- function(input_hover, count_aggregate_df, count_aggregate, left_adjust, top_adjust) {
+    
+    hover <- input_hover
+    if (is.null(hover)) return(NULL)
+    
+    if (round(hover$y) > length(levels(fct_drop(count_aggregate)))) {
+      
+      Name <- levels(fct_drop(count_aggregate))[length(levels(fct_drop(count_aggregate)))]
+      
+    } else if (round(hover$y) < 1) {
+      
+      Name <- levels(fct_drop(count_aggregate))[1]
+      
+    } else {
+      
+      Name <- levels(fct_drop(count_aggregate))[round(hover$y)]
+      
+    }
+    
+    left_pct <- (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+    top_pct <- (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+    
+    left_px <- hover$range$left + left_pct * (hover$range$right - hover$range$left)
+    top_px <- hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
+    
+    style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.20); ",
+                    "left:", left_px + left_adjust, "px; top:", top_px + top_adjust, "px;")
+    
+    
+    winrate <- count_aggregate_df[count_aggregate == Name,]$Win_Rate
+    return(list("Name" = Name, "Win" = winrate, "style" = style))
+    
+    
+  }
   
   
   
+  ###############
+  ###############
+  ###CHAMPIONS### 
+  ###############
+  ###############
+  
+  #Set initial reactive values
+  filtered_Region <- reactiveVal(0)
+  #filtered_Battlerites <- reactiveValues(br1 = 0, br2 = 0, br3 = 0, br4 = 0, br5 = 0)
+  filtered_League <- reactiveVal(0)
+  filtered_Matchtype <- reactiveVal(0)
+  filtered_Map <- reactiveVal(0)
+  filtered_Casual <- reactiveVal(0)
+  filtered_Mount <- reactiveVal(0)
+  filtered_Title <- reactiveVal(0)
+  filtered_Avatar <- reactiveVal(0)
+  filtered_Outfit <- reactiveVal(0)
+  filtered_Attachment <- reactiveVal(0)
+  filtered_Pose <- reactiveVal(0)
+  
+  #Filter on champion select first
+  #Filter on initial champion select
+  champ_df <- reactive({
+    
+    req(input$champion != 'None')
+    data <- filter(df, Champion == input$champion)
+    data
+    
+  })
+  
+  ###Interactive sliders###
+  
+  output$Interactive_Slider1 <- renderUI({
+    
+    req(input$champion != 'None')
+    
+    sliderInput(inputId = 'total_played',
+                label = 'Total Time Played (hours):',
+                min = 0,
+                max = max(champ_df()$Total_Time_Played, na.rm = TRUE),
+                value = c(0, max(champ_df()$Total_Time_Played, na.rm = TRUE)))
+    
+ 
+  })
+  
+  output$Interactive_Slider2 <- renderUI({
+    
+    req(input$champion != 'None')
+    
+    sliderInput(inputId = 'champ_played',
+                label = 'Total Time Champion Played (hours):',
+                min = 0,
+                max = max(champ_df()$`Champion_Time_Played`, na.rm = TRUE),
+                value = c(0, max(champ_df()$`Champion_Time_Played`, na.rm = TRUE)))
+    
+    
+  })
   
   
+  #Filter starting data frame with any filters applied
+  filtered_data <- reactive({create_filtered_data(champ_df(),
+                                                  input$champion,
+                                                  input$total_played[1],
+                                                  input$total_played[2],
+                                                  input$champ_played[1],
+                                                  input$champ_played[2],
+                                                  filtered_Region(),
+                                                  filtered_League(),
+                                                  filtered_Matchtype(),
+                                                  filtered_Map(),
+                                                  filtered_Casual(),
+                                                  filtered_Mount(),
+                                                  filtered_Title(),
+                                                  filtered_Avatar(),
+                                                  filtered_Outfit(),
+                                                  filtered_Attachment(),
+                                                  filtered_Pose()
+                                                  )})
   
+
+  ############
+  ###REGION###
+  ############
+
   
+  #Create pre-aggregate data for region
+  pre_agg_region <- reactive({pre_agg(filtered_data(),
+                                  input$measure,
+                                  'Region')})
   
+  #Create aggregate region data
+  Region_df <- reactive({region_agg(pre_agg_region(),
+                                 input$measure,
+                                 region_coordinates)})
   
+
+  #Filter Region observe event
+  observeEvent(
+    eventExpr = input$Region_marker_click,
+    handlerExpr = {
+      
+      OE_filterRegion(filtered_Region, input$Region_marker_click$id)
+      
+    }
+  )
   
+  #Unfilter button
+  observeEvent(
+    eventExpr = input$unfilterRegion,
+    handlerExpr = {
+      
+      filtered_Region(0)
+      
+    }
+  )
   
+  #Create Region plot
+  output$Region <- renderLeaflet({create_region_map(Region_df(), input$champion)
+  })
   
+  #Filtered region label
+  output$Chosen_Region <- renderUI({create_region_label(filtered_Region())})
+ 
+  ############
+  ###LEAGUE###
+  ############
+  
+  pre_agg_league <- reactive({pre_agg(filtered_data(),
+                                      input$measure,
+                                      'League')})
+  
+  League_df <- reactive({common_agg(pre_agg_league(),
+                                    input$measure,
+                                    'League')})
+  
+  #Filter League observe event
+  observeEvent(
+    eventExpr = input$filterLeague,
+    handlerExpr = {
+      
+      OE_filterLeague(League_df(), filtered_League, input$filterLeague$y)
+      
+    }
+  )
+  
+  #Unfilter League
+  observeEvent(
+    eventExpr = input$unfilterLeague,
+    handlerExpr = {
+      
+      filtered_League(0)
+      
+    }
+  )
+  
+  #League Bar plot
+  output$League <- renderPlot({
+    
+    req(input$champion != 'None')
+    create_league_plot(League_df())})
+  
+  #League hover label
+  output$League_tooltip <- renderUI({
+    
+    info <- create_tooltip(input$hoverLeague, League_df(), League_df()$League, 40, -30)
+    
+    if (!is.null(info$Win)) {
+      
+      wellPanel(
+        style = info$style,
+        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+      )
+      
+    }
+    
+  })
   
 }
+
                         
 
-
+shinyApp(ui = ui, server = server)
 
 
 

@@ -8,6 +8,7 @@ library('tidyr')
 library('stringr')
 library('fastDummies')
 library('readxl')
+library('leaflet')
 
 setwd('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Data/2019/July/10')
 
@@ -33,50 +34,12 @@ unique_champions <- unique(df$Champion)
 df <- mutate(df, Total_Time_Played = ceiling(Total_Time_Played/3600),
                  Champion_Time_Played = ceiling(Champion_Time_Played/3600))
 
-
-#Filter to champion
-Cdf <- filter(df, Champion %in% unique_champions[1])
-
-#################
-###BATTLERITES###
-#################
-
-#Slice Cdf to include only Battlerite columns
-Cdf2 <- Cdf[, c('Battlerite 1', 'Battlerite 2', 'Battlerite 3', 'Battlerite 4', 'Battlerite 5')]
-
-#Get unique list of battlerites stored in vector
-all_battlerites <- unique(c(unique(Cdf2$`Battlerite 1`), unique(Cdf2$`Battlerite 2`), 
-                            unique(Cdf2$`Battlerite 3`), unique(Cdf2$`Battlerite 4`), 
-                            unique(Cdf2$`Battlerite 5`)))
-
-#Convert categories to indicator variables
-Cdf3 <- dummy_cols(Cdf2)
-
-#Initial column names without Battlerite 1, Battlerite 2, etc
-init_colnames <- colnames(Cdf3)[6:length(colnames(Cdf3))]
-
-#Subset to not include Battlerite 1, Battlerite 2 columns
-Cdf3 <- Cdf3[, init_colnames]
-
-#Rename columns to remove prefix introduced by dummy_cols
-colnames(Cdf3) <- str_replace(init_colnames, paste0(colnames(Cdf2)[1] , '_'), replacement = '')
-colnames(Cdf3) <- str_replace(colnames(Cdf3), paste0(colnames(Cdf2)[2] , '_'), replacement = '')
-colnames(Cdf3) <- str_replace(colnames(Cdf3), paste0(colnames(Cdf2)[3] , '_'), replacement = '')
-colnames(Cdf3) <- str_replace(colnames(Cdf3), paste0(colnames(Cdf2)[4] , '_'), replacement = '')
-colnames(Cdf3) <- str_replace(colnames(Cdf3), paste0(colnames(Cdf2)[5] , '_'), replacement = '')
-
-#Convert character variables to numeric to apply rowsums
-Cdf3 <- sapply(Cdf3, as.numeric)
-
-#Group by same Battlerite name and have final unique set of battlerite choices as indicator variables
-Cdf3 <- t(rowsum(t(Cdf3), group = colnames(Cdf3)))
-
-#Remove the current Battlerite 1, Battlerite 2, etc columns
-Cdf <- Cdf[, !(names(Cdf) %in% c('Battlerite 1', 'Battlerite 2', 'Battlerite 3', 'Battlerite 4', 'Battlerite 5'))]
-
-#Attach new Battlerite columns
-Cdf <- cbind(Cdf, Cdf3)
-
+#Put Change Server_Type variable to show 2v2, 3v3, solo queue
+df <- mutate(df, Server_Type = ifelse(Solo_Queue == 1 & Match_Type == 'LEAGUE3V3', 'Solo Queue', 
+                                      ifelse(Server_Type == 'QUICK3V3', '3V3',
+                                             ifelse(Server_Type == 'QUICK2V2', '2V2', Server_Type))))
+df$Server_Type <- factor(df$Server_Type)
+           
 
 ui <- navbarPage('Navbar',
                  tabPanel('Champion',
@@ -139,12 +102,12 @@ ui <- navbarPage('Navbar',
                                             uiOutput('League_tooltip')
                                    ),
                                    fluidRow(width = 6,
-                                            plotOutput(outputId = 'MatchType',
-                                                       dblclick = 'filterMatchType',
-                                                       click = 'unfilterMatchType',
-                                                       hover = hoverOpts('hoverMatchType'),
+                                            plotOutput(outputId = 'ServerType',
+                                                       dblclick = 'filterServerType',
+                                                       click = 'unfilterServerType',
+                                                       hover = hoverOpts('hoverServerType'),
                                                        height = '300px'),
-                                            uiOutput('MatchType_tooltip')
+                                            uiOutput('ServerType_tooltip')
                                    )
                             )
                           ),
@@ -274,7 +237,7 @@ server <- function(input, output) {
   
   create_filtered_data <- function(champ_df, input_champion, input_total_time_played_min, input_total_time_played_max, 
                                    input_champ_played_min, input_champ_played_max,
-                                   filtered_region, filtered_league, filtered_matchtype,
+                                   filtered_region, filtered_league, filtered_servertype,
                                    filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
                                    filtered_outfit, filtered_attachment, filtered_pose) {
     #Only include if have selected a champion
@@ -329,9 +292,9 @@ server <- function(input, output) {
       data <- filter(data, League %in% filtered_league)
     }
     
-    #Filter on Match Type (Need to add solo queue in one column in match type)
-    if (filtered_matchtype != 0) {
-      data <- filter(data, Match_Type %in% filtered_matchtype)
+    #Filter on Server Type (Need to add solo queue in one column in match type)
+    if (filtered_servertype != 0) {
+      data <- filter(data, Server_Type %in% filtered_servertype)
     }
     
     #Filter on Map played
@@ -390,26 +353,30 @@ server <- function(input, output) {
     
   }
   
-  #League
-  OE_filterLeague <- function(common_agg_df, filtered_league, input_filterLeague_y) {
+  
+  #Common observe event filter for bar plots
+  OE_Filter_common <- function(common_agg_df, filtered_variable, input_filter_y, variable) {
     
     data <- common_agg_df
+
     
-    if (round(input_filterLeague_y) > length(levels(fct_drop(data$League)))) {
+    if (round(input_filter_y) > length(levels(fct_drop(data[[variable]])))) {
       
-      filtered_League(levels(fct_drop(data$League))[length(levels(fct_drop(data$League)))])
+      filtered_variable(levels(fct_drop(data[[variable]]))[length(levels(fct_drop(data[[variable]])))])
       
-    } else if (round(input_filterLeague_y) <= 1) {
+    } else if (round(input_filter_y) <= 1) {
       
-      filtered_League(levels(fct_drop(data$League))[1])
+      filtered_variable(levels(fct_drop(data[[variable]]))[1])
       
     } else {
       
-      filtered_League(levels(data$League)[round(input_filterLeague_y)])
+      filtered_variable(levels(data[[variable]])[round(input_filter_y)])
       
     }
     
   }
+  
+
   
   ###Aggregates###
   
@@ -442,7 +409,8 @@ server <- function(input, output) {
       select(Region, Game_Won) %>%
       group_by(Region) %>%
       summarize(Win_Rate = mean(Game_Won)) %>%
-      mutate(Region = fct_reorder(Region, Win_Rate), Win_Rate = round(Win_Rate*100, 2))
+      mutate(Win_Rate = round(Win_Rate*100, 2))
+
     }
     
     ref_regions$Region <- factor(ref_regions$Region, levels = levels(data$Region))
@@ -454,7 +422,7 @@ server <- function(input, output) {
     
   }
   
-  common_agg <- function(pre_agg_data, measure, variable) {
+  common_agg <- function(pre_agg_data, measure, variable, sort_descending) {
     
     var <- as.name(variable)
     
@@ -465,7 +433,11 @@ server <- function(input, output) {
         select(!!var, Game_Won) %>%
         group_by(!!var) %>%
         summarize(Win_Rate = mean(Game_Won)) %>%
-        mutate(!!var := fct_reorder(!!var, Win_Rate), Win_Rate = round(Win_Rate*100, 2))
+        mutate(Win_Rate = round(Win_Rate*100,2))
+      
+      if (sort_descending) {
+        data <- mutate(data, !!var := fct_reorder(!!var, Win_Rate))
+      }
     }
     
     return(data)
@@ -519,14 +491,15 @@ server <- function(input, output) {
   
   
   #Group bars by 2v2, 3v3, solo queue etc stacked
-  
-  create_league_plot <- function(league_df) {
+  create_barplot <- function(agg_df, variable) {
     
-    bar <- ggplot(data = league_df, aes(x = League, y = Win_Rate)) +
+    var <- as.name(variable)
+    
+    bar <- ggplot(data = agg_df, aes(x = !!var, y = Win_Rate)) +
       geom_bar(width = 1, stat = 'identity') +
       coord_flip() +
       ylab('Win Rate') +
-      xlab('League')
+      xlab(variable)
      
     
     return(bar)
@@ -591,9 +564,9 @@ server <- function(input, output) {
   
   #Set initial reactive values
   filtered_Region <- reactiveVal(0)
-  #filtered_Battlerites <- reactiveValues(br1 = 0, br2 = 0, br3 = 0, br4 = 0, br5 = 0)
+  filtered_Battlerites <- reactiveValues()
   filtered_League <- reactiveVal(0)
-  filtered_Matchtype <- reactiveVal(0)
+  filtered_Servertype <- reactiveVal(0)
   filtered_Map <- reactiveVal(0)
   filtered_Casual <- reactiveVal(0)
   filtered_Mount <- reactiveVal(0)
@@ -608,8 +581,44 @@ server <- function(input, output) {
   champ_df <- reactive({
     
     req(input$champion != 'None')
-    data <- filter(df, Champion == input$champion)
-    data
+    Cdf <- filter(df, Champion == input$champion)
+    
+    #Slice Cdf to include only Battlerite columns
+    Cdf2 <- Cdf[, c('Battlerite 1', 'Battlerite 2', 'Battlerite 3', 'Battlerite 4', 'Battlerite 5')]
+    
+    #Get unique list of battlerites stored in vector
+    all_battlerites <- unique(c(unique(Cdf2$`Battlerite 1`), unique(Cdf2$`Battlerite 2`), 
+                                unique(Cdf2$`Battlerite 3`), unique(Cdf2$`Battlerite 4`), 
+                                unique(Cdf2$`Battlerite 5`)))
+    
+    #Convert categories to indicator variables
+    Cdf3 <- dummy_cols(Cdf2)
+    
+    #Initial column names without Battlerite 1, Battlerite 2, etc
+    init_colnames <- colnames(Cdf3)[6:length(colnames(Cdf3))]
+    
+    #Subset to not include Battlerite 1, Battlerite 2 columns
+    Cdf3 <- Cdf3[, init_colnames]
+    
+    #Rename columns to remove prefix introduced by dummy_cols
+    colnames(Cdf3) <- str_replace(init_colnames, paste0(colnames(Cdf2)[1] , '_'), replacement = '')
+    colnames(Cdf3) <- str_replace(colnames(Cdf3), paste0(colnames(Cdf2)[2] , '_'), replacement = '')
+    colnames(Cdf3) <- str_replace(colnames(Cdf3), paste0(colnames(Cdf2)[3] , '_'), replacement = '')
+    colnames(Cdf3) <- str_replace(colnames(Cdf3), paste0(colnames(Cdf2)[4] , '_'), replacement = '')
+    colnames(Cdf3) <- str_replace(colnames(Cdf3), paste0(colnames(Cdf2)[5] , '_'), replacement = '')
+    
+    #Convert character variables to numeric to apply rowsums
+    Cdf3 <- sapply(Cdf3, as.numeric)
+    
+    #Group by same Battlerite name and have final unique set of battlerite choices as indicator variables
+    Cdf3 <- t(rowsum(t(Cdf3), group = colnames(Cdf3)))
+    
+    #Remove the current Battlerite 1, Battlerite 2, etc columns
+    Cdf <- Cdf[, !(names(Cdf) %in% c('Battlerite 1', 'Battlerite 2', 'Battlerite 3', 'Battlerite 4', 'Battlerite 5'))]
+    
+    #Attach new Battlerite columns
+    Cdf <- cbind(Cdf, Cdf3)
+    Cdf
     
   })
   
@@ -651,7 +660,7 @@ server <- function(input, output) {
                                                   input$champ_played[2],
                                                   filtered_Region(),
                                                   filtered_League(),
-                                                  filtered_Matchtype(),
+                                                  filtered_Servertype(),
                                                   filtered_Map(),
                                                   filtered_Casual(),
                                                   filtered_Mount(),
@@ -716,15 +725,16 @@ server <- function(input, output) {
   
   League_df <- reactive({common_agg(pre_agg_league(),
                                     input$measure,
-                                    'League')})
+                                    'League',
+                                    FALSE)})
   
   #Filter League observe event
   observeEvent(
     eventExpr = input$filterLeague,
     handlerExpr = {
       
-      OE_filterLeague(League_df(), filtered_League, input$filterLeague$y)
-      
+      OE_Filter_common(League_df(), filtered_League, input$filterLeague$y, 'League')
+
     }
   )
   
@@ -742,7 +752,7 @@ server <- function(input, output) {
   output$League <- renderPlot({
     
     req(input$champion != 'None')
-    create_league_plot(League_df())})
+    create_barplot(League_df(), 'League')})
   
   #League hover label
   output$League_tooltip <- renderUI({
@@ -760,7 +770,131 @@ server <- function(input, output) {
     
   })
   
+  ################
+  ###SERVERTYPE###
+  ################
+  
+  pre_agg_servertype <- reactive({pre_agg(filtered_data(),
+                                      input$measure,
+                                      'Server_Type')})
+  
+  Servertype_df <- reactive({common_agg(pre_agg_servertype(),
+                                    input$measure,
+                                    'Server_Type',
+                                    FALSE)})
+  
+  #Filter ServerType observe event
+  observeEvent(
+    eventExpr = input$filterServerType,
+    handlerExpr = {
+      
+      OE_Filter_common(Servertype_df(), filtered_Servertype, input$filterServerType$y, 'Server_Type')
+      
+    }
+  )
+  
+  #Unfilter ServerType event
+  observeEvent(
+    eventExpr = input$unfilterServerType,
+    handlerExpr = {
+      
+      filtered_Servertype(0)
+      
+    }
+  )
+  
+  #Create barplot
+  
+  output$ServerType <- renderPlot({
+    
+    create_barplot(Servertype_df(), 'Server_Type')
+    
+  })
+  
+  #Matchtype hover label
+  output$ServerType_tooltip <- renderUI({
+    
+    info <- create_tooltip(input$hoverServerType, Servertype_df(), Servertype_df()$Server_Type, 40, 268)
+    
+    if (!is.null(info$Win)) {
+      
+      wellPanel(
+        style = info$style,
+        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+      )
+      
+    }
+    
+  })
+  
+  #########
+  ###MAP###
+  #########
+  
+  pre_agg_map <- reactive({pre_agg(filtered_data(),
+                                          input$measure,
+                                          'Map')})
+  
+  Map_df <- reactive({common_agg(pre_agg_map(),
+                                        input$measure,
+                                        'Map',
+                                        TRUE)})
+  
+  #Filter ServerType observe event
+  observeEvent(
+    eventExpr = input$filterMap,
+    handlerExpr = {
+      
+      OE_Filter_common(Map_df(), filtered_Map, input$filterMap$y, 'Map')
+      
+    }
+  )
+  
+  #Unfilter Map event
+  observeEvent(
+    eventExpr = input$unfilterMap,
+    handlerExpr = {
+      
+      filtered_Map(0)
+      
+    }
+  )
+  
+  #Create barplot
+  
+  output$Map <- renderPlot({
+    
+    create_barplot(Map_df(), 'Map')
+    
+  })
+  
+  #Matchtype hover label
+  output$Map_tooltip <- renderUI({
+    
+    info <- create_tooltip(input$hoverMap, Map_df(), Map_df()$Map, 40, -30)
+    
+    if (!is.null(info$Win)) {
+      
+      wellPanel(
+        style = info$style,
+        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+      )
+      
+    }
+    
+  })
+  
+  
+  #################
+  ###BATTLERITES###
+  #################
+  
+  
+  
+  
 }
+
+
 
                         
 

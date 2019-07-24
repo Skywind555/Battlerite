@@ -21,7 +21,17 @@ df$Champion <- factor(df$Champion)
 df$Region <- factor(df$Region)
 df$League <- factor(df$League, levels = rev(c('Grand Champion', 'Champion', 'Diamond', 'Platinum', 'Gold',
                                           'Silver', 'Bronze')), ordered = TRUE)
-region_coordinates$Group <- factor(region_coordinates$Group)
+region_coordinates$`Region Group` <- factor(region_coordinates$`Region Group`)
+
+
+#Attach Latitude/Longitude, City, Region Group
+region_coordinates$Region <- factor(region_coordinates$Region, levels = levels(df$Region))
+df <- inner_join(x = df, y = region_coordinates, by = c('Region' = 'Region'))
+df$`Region Group` <- factor(df$`Region Group`)
+df <- mutate(df, Region = Region_Clean)
+df$Region <- factor(df$Region)
+
+
 df$`Battlerite 1` <- factor(df$`Battlerite 1`)
 df$`Battlerite 2` <- factor(df$`Battlerite 2`)
 df$`Battlerite 3` <- factor(df$`Battlerite 3`)
@@ -39,6 +49,20 @@ df <- mutate(df, Server_Type = ifelse(Solo_Queue == 1 & Match_Type == 'LEAGUE3V3
                                       ifelse(Server_Type == 'QUICK3V3', '3V3',
                                              ifelse(Server_Type == 'QUICK2V2', '2V2', Server_Type))))
 df$Server_Type <- factor(df$Server_Type)
+
+#Convert 'None' to 'Unranked' - there should only be ranked or unranked
+df <- mutate(df, Ranking_Type = ifelse(Ranking_Type == 'NONE', 'UNRANKED', Ranking_Type))
+df$Ranking_Type <- factor(df$Ranking_Type)
+
+#Add bot player_type information. If outfit is a blank, is a bot (All default battlerites selected for all players
+#With blank outfits for all champions)
+df <- mutate(df, Player_Type = ifelse(is.na(Outfit), 'BOT', 'PLAYER'))
+
+#Bots use default outfits except for mounts, fill in blanks with defaults
+df <- mutate(df, Outfit = ifelse(is.na(Outfit), 'DEFAULT OUTFIT', Outfit),
+                 Attachment = ifelse(is.na(Attachment), 'DEFAULT WEAPON', Attachment),
+                 Pose = ifelse(is.na(Pose), 'DEFAULT POSE', Pose))
+
            
 
 ui <- navbarPage('Navbar',
@@ -69,6 +93,14 @@ ui <- navbarPage('Navbar',
                                                             'Pick Rate' = 'pickrate',
                                                             'Pick Rate(Adjusted)' = 'pickrateadjusted'))
                             )
+                          ),
+                          
+                          fluidRow(
+                            column(width = 12,
+                                   div(DT::dataTableOutput('RegionGroup'), style = "font-size:75%"),
+                                   actionButton(inputId = 'unfilterRegionGroup',
+                                                label = 'Unfilter Region Group')
+                                   )
                           ),
                           
                           fluidRow(
@@ -110,6 +142,23 @@ ui <- navbarPage('Navbar',
                                             uiOutput('ServerType_tooltip')
                                    )
                             )
+                          ),
+                          
+                          fluidRow(
+                            column(width = 6,
+                                   plotOutput(outputId = 'PlayerType',
+                                              dblclick = 'filterPlayerType',
+                                              click = 'unfilterPlayerType',
+                                              hover = hoverOpts('hoverPlayerType'),
+                                              height = '300px'),
+                                   uiOutput('PlayerType_tooltip')),
+                            column(width = 6,
+                                   plotOutput(outputId = 'Date',
+                                              dblclick = 'filterDate',
+                                              click = 'unfilterDate',
+                                              hover = hoverOpts('hoverDate'),
+                                              height = '300px'),
+                                   uiOutput('Date_tooltip'))
                           ),
                           
                           fluidRow(
@@ -171,7 +220,7 @@ ui <- navbarPage('Navbar',
                             column(width = 4,
                                    plotOutput(outputId = 'Title',
                                               dblclick = 'filterTitle',
-                                              click = 'filterTitle',
+                                              click = 'unfilterTitle',
                                               hover = hoverOpts('hoverTitle'),
                                               height = '600px'),
                                    uiOutput('Title_tooltip')
@@ -211,7 +260,8 @@ ui <- navbarPage('Navbar',
                                               dblclick = 'filterPose',
                                               click = 'unfilterPose',
                                               hover = hoverOpts('hoverPose'),
-                                              height = '300px')
+                                              height = '300px'),
+                                   uiOutput('Pose_tooltip')
                                    )
                           ),
                           
@@ -239,7 +289,8 @@ server <- function(input, output) {
                                    input_champ_played_min, input_champ_played_max,
                                    filtered_region, filtered_league, filtered_servertype,
                                    filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
-                                   filtered_outfit, filtered_attachment, filtered_pose) {
+                                   filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
+                                   filtered_playertype, filtered_date) {
     #Only include if have selected a champion
     req(input_champion != 'None')
     
@@ -253,6 +304,13 @@ server <- function(input, output) {
     if (filtered_region != 0) {
       data <- filter(data, Region %in% filtered_region)
     }
+
+    test <- 1
+    
+    if (filtered_regiongroup != 0) {
+      data <- filter(data, `Region Group` %in% filtered_regiongroup)
+    }
+    
     
     #Filter on number of battlerites selected, up to five
     #if (sum(ifelse(filtered_battlerites == 0, 1, 0)) == 4) {
@@ -290,6 +348,15 @@ server <- function(input, output) {
     #Filter on League
     if (filtered_league != 0) {
       data <- filter(data, League %in% filtered_league)
+    }
+    
+    #Filter player type
+    if (filtered_playertype != 0) {
+      data <- filter(data, Player_Type %in% filtered_playertype)
+    }
+    #Filter Date
+    if (filtered_date != 0) {
+      data <- filter(data, Date %in% filtered_date)
     }
     
     #Filter on Server Type (Need to add solo queue in one column in match type)
@@ -400,25 +467,35 @@ server <- function(input, output) {
     
   }
   
-  region_agg <- function(pre_agg_data, measure, ref_regions) {
+  region_agg <- function(filtered_data, measure) {
     
     if (measure == 'winrate') {
-    
-    data <- pre_agg_data %>%
-      ungroup() %>%
-      select(Region, Game_Won) %>%
-      group_by(Region) %>%
-      summarize(Win_Rate = mean(Game_Won)) %>%
-      mutate(Win_Rate = round(Win_Rate*100, 2))
+      
+      data <- filtered_data %>%
+        select(Game_ID, User_ID, Round_Won, City, Longitude, Latitude, Region, `Region Group`) %>%
+        group_by(Game_ID, User_ID, City, Longitude, Latitude, Region, `Region Group`) %>%
+        summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0)) %>%
+        ungroup() %>%
+        select(Region, `Region Group`, Longitude, Latitude, City, Game_Won) %>%
+        group_by(Region, `Region Group`, Longitude, Latitude, City) %>%
+        summarize(Win_Rate = round(mean(Game_Won)*100,2))
 
     }
     
-    ref_regions$Region <- factor(ref_regions$Region, levels = levels(data$Region))
+    return(data)
     
-    #Add coordinates
-    coord_data <- inner_join(x = data, y = ref_regions, by = c('Region' = 'Region'))
+  }
+  
+  region_table_agg <- function(region_agg) {
     
-    return(coord_data)
+    data <- region_agg %>%
+      ungroup() %>%
+      select(`Region Group`, Win_Rate) %>%
+      group_by(`Region Group`) %>%
+      summarize(Win_Rate = round(mean(Win_Rate), 2)) %>%
+      arrange(desc(Win_Rate))
+  
+    return(data)
     
   }
   
@@ -447,12 +524,12 @@ server <- function(input, output) {
   
   ###Plots###
   
-  create_region_map <- function(region_df, input_champion) {
+  create_region_map <- function(region_df, input_champion, region_ref) {
     
     req(input_champion != 'None')
     
     pal <- colorFactor(c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00"), 
-                            levels(region_df$Group))
+                            levels(region_ref$`Region Group`))
     
     m <- leaflet(data = region_df) %>%
       addTiles() %>%
@@ -460,7 +537,7 @@ server <- function(input, output) {
                        lat = ~Latitude,
                        stroke = FALSE,
                        layerId = ~Region,
-                       color = ~pal(Group),
+                       color = ~pal(`Region Group`),
                        fillOpacity = 1,
                        radius = ~ifelse(Win_Rate <= 30, 3,
                                         ifelse(Win_Rate <= 40, 4,
@@ -480,8 +557,25 @@ server <- function(input, output) {
   }
   
   
-  
-  
+  create_region_table <- function(data, row_name) {
+    
+    dat <- datatable(data, selection = list(mode = 'single', target = 'cell'),
+                     callback = JS(gsub("\n", "", paste0("table.on('click.dt', 'td', function() {
+                var row_=table.cell(this).index().row;
+                                   var col=table.cell(this).index().column;
+                                   var rnd= Math.random();
+                                   var data = [row_, col, rnd];
+                                   Shiny.onInputChange(", row_name, ",data);
+  });"))) ) %>%
+      formatStyle('Region Group', target = 'row',
+                  backgroundColor = styleEqual(c('USA', 'Europe', 'OCE', 'Asia', 'South America', 'Other'),
+                                               c("#D55E00", "#56B4E9", "#009E73", "#E69F00", "#0072B2", "#F0E442")))
+    
+    #c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00")
+    return(dat)
+    
+    
+  }
   
   
   
@@ -575,6 +669,9 @@ server <- function(input, output) {
   filtered_Outfit <- reactiveVal(0)
   filtered_Attachment <- reactiveVal(0)
   filtered_Pose <- reactiveVal(0)
+  filtered_RegionGroup <- reactiveVal(0)
+  filtered_PlayerType <- reactiveVal(0)
+  filtered_Date <- reactiveVal(0)
   
   #Filter on champion select first
   #Filter on initial champion select
@@ -668,7 +765,10 @@ server <- function(input, output) {
                                                   filtered_Avatar(),
                                                   filtered_Outfit(),
                                                   filtered_Attachment(),
-                                                  filtered_Pose()
+                                                  filtered_Pose(),
+                                                  filtered_RegionGroup(),
+                                                  filtered_PlayerType(),
+                                                  filtered_Date()
                                                   )})
   
 
@@ -677,15 +777,9 @@ server <- function(input, output) {
   ############
 
   
-  #Create pre-aggregate data for region
-  pre_agg_region <- reactive({pre_agg(filtered_data(),
-                                  input$measure,
-                                  'Region')})
-  
   #Create aggregate region data
-  Region_df <- reactive({region_agg(pre_agg_region(),
-                                 input$measure,
-                                 region_coordinates)})
+  Region_df <- reactive({region_agg(filtered_data(),
+                                 input$measure)})
   
 
   #Filter Region observe event
@@ -709,12 +803,51 @@ server <- function(input, output) {
   )
   
   #Create Region plot
-  output$Region <- renderLeaflet({create_region_map(Region_df(), input$champion)
+  output$Region <- renderLeaflet({create_region_map(Region_df(), input$champion, region_coordinates)
   })
   
   #Filtered region label
   output$Chosen_Region <- renderUI({create_region_label(filtered_Region())})
  
+  ##################
+  ###REGION GROUP###
+  ##################
+  
+  #Aggregate Region group
+  RegionGroup_df <- reactive({region_table_agg(Region_df())})
+  
+  
+  #Filter Region Group observe event
+  observeEvent(
+    eventExpr = input$RegionGroupRow,
+    handlerExpr = {
+      
+      row <- input$RegionGroup_cell_clicked
+      selected_regiongroup <- RegionGroup_df()[row$row, 'Region Group']$`Region Group`
+      filtered_RegionGroup(selected_regiongroup)
+      
+    }
+  )
+  
+  #Unfilter button
+  observeEvent(
+    eventExpr = input$unfilterRegionGroup,
+    handlerExpr = {
+      
+      filtered_RegionGroup(0)
+      filtered_Region(0)
+      
+    }
+  )
+  
+  
+  output$RegionGroup <- DT::renderDataTable(expr = {
+    
+    create_region_table(RegionGroup_df(), "'RegionGroupRow'")
+    
+  })
+  
+  
   ############
   ###LEAGUE###
   ############
@@ -769,6 +902,69 @@ server <- function(input, output) {
     }
     
   })
+  
+  #################
+  ###PLAYER TYPE###
+  #################
+  
+  pre_agg_playertype <- reactive({pre_agg(filtered_data(),
+                                      input$measure,
+                                      'Player_Type')})
+  
+  PlayerType_df <- reactive({common_agg(pre_agg_playertype(),
+                                    input$measure,
+                                    'Player_Type',
+                                    FALSE)})
+  
+  #Filter PlayerType observe event
+  observeEvent(
+    eventExpr = input$filterPlayerType,
+    handlerExpr = {
+      
+      OE_Filter_common(PlayerType_df(), filtered_PlayerType, input$filterPlayerType$y, 'Player_Type')
+      
+    }
+  )
+  
+  #Unfilter PlayerType event
+  observeEvent(
+    eventExpr = input$unfilterPlayerType,
+    handlerExpr = {
+      
+      filtered_PlayerType(0)
+      
+    }
+  )
+  
+  #Create barplot
+  
+  output$PlayerType <- renderPlot({
+    
+    create_barplot(PlayerType_df(), 'Player_Type')
+    
+  })
+  
+  #PlayerType hover label
+  output$PlayerType_tooltip <- renderUI({
+    
+    info <- create_tooltip(input$hoverPlayerType, PlayerType_df(), PlayerType_df()$Player_Type, 40, -30)
+    
+    if (!is.null(info$Win)) {
+      
+      wellPanel(
+        style = info$style,
+        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+      )
+      
+    }
+    
+  })
+  
+  
+  ##########
+  ###DATE###
+  ##########
+  
   
   ################
   ###SERVERTYPE###
@@ -883,6 +1079,412 @@ server <- function(input, output) {
     }
     
   })
+  
+  ##################
+  ###RANKING TYPE###
+  ##################
+  
+  pre_agg_casual <- reactive({pre_agg(filtered_data(),
+                                   input$measure,
+                                   'Ranking_Type')})
+  
+  Casual_df <- reactive({common_agg(pre_agg_casual(),
+                                 input$measure,
+                                 'Ranking_Type',
+                                 FALSE)})
+  
+  #Filter Ranking_Type observe event
+  observeEvent(
+    eventExpr = input$filterCasual,
+    handlerExpr = {
+      
+      OE_Filter_common(Casual_df(), filtered_Casual, input$filterCasual$y, 'Ranking_Type')
+      
+    }
+  )
+  
+  #Unfilter Ranking_Type event
+  observeEvent(
+    eventExpr = input$unfilterCasual,
+    handlerExpr = {
+      
+      filtered_Casual(0)
+      
+    }
+  )
+  
+  #Create barplot
+  
+  output$Casual <- renderPlot({
+    
+    create_barplot(Casual_df(), 'Ranking_Type')
+    
+  })
+  
+  #Ranking_Type hover label
+  output$Casual_tooltip <- renderUI({
+    
+    info <- create_tooltip(input$hoverCasual, Casual_df(), Casual_df()$Ranking_Type, 40, -30)
+    
+    if (!is.null(info$Win)) {
+      
+      wellPanel(
+        style = info$style,
+        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+      )
+      
+    }
+    
+  })
+  
+  ############
+  ###AVATAR###
+  ############
+  
+  pre_agg_avatar <- reactive({pre_agg(filtered_data(),
+                                      input$measure,
+                                      'Avatar')})
+  
+  Avatar_df <- reactive({common_agg(pre_agg_avatar(),
+                                    input$measure,
+                                    'Avatar',
+                                    TRUE)})
+  
+  #Filter Avatar observe event
+  observeEvent(
+    eventExpr = input$filterAvatar,
+    handlerExpr = {
+      
+      OE_Filter_common(Avatar_df(), filtered_Avatar, input$filterAvatar$y, 'Avatar')
+      
+    }
+  )
+  
+  #Unfilter Avatar event
+  observeEvent(
+    eventExpr = input$unfilterAvatar,
+    handlerExpr = {
+      
+      filtered_Avatar(0)
+      
+    }
+  )
+  
+  #Create barplot
+  
+  output$Avatar <- renderPlot({
+    
+    create_barplot(Avatar_df(), 'Avatar')
+    
+  })
+  
+  #Avatar hover label
+  output$Avatar_tooltip <- renderUI({
+    
+    info <- create_tooltip(input$hoverAvatar, Avatar_df(), Avatar_df()$Avatar, 40, -30)
+    
+    if (!is.null(info$Win)) {
+      
+      wellPanel(
+        style = info$style,
+        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+      )
+      
+    }
+    
+  })
+  
+  ###########
+  ###TITLE###
+  ###########
+  
+  pre_agg_title <- reactive({pre_agg(filtered_data(),
+                                      input$measure,
+                                      'Title')})
+  
+  Title_df <- reactive({common_agg(pre_agg_title(),
+                                    input$measure,
+                                    'Title',
+                                    TRUE)})
+  
+  #Filter Title observe event
+  observeEvent(
+    eventExpr = input$filterTitle,
+    handlerExpr = {
+      
+      OE_Filter_common(Title_df(), filtered_Title, input$filterTitle$y, 'Title')
+      
+    }
+  )
+  
+  #Unfilter Title event
+  observeEvent(
+    eventExpr = input$unfilterTitle,
+    handlerExpr = {
+      
+      filtered_Title(0)
+      
+    }
+  )
+  
+  #Create barplot
+  
+  output$Title <- renderPlot({
+    
+    create_barplot(Title_df(), 'Title')
+    
+  })
+  
+  #Title hover label
+  output$Title_tooltip <- renderUI({
+    
+    info <- create_tooltip(input$hoverTitle, Title_df(), Title_df()$Title, 40, -30)
+    
+    if (!is.null(info$Win)) {
+      
+      wellPanel(
+        style = info$style,
+        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+      )
+      
+    }
+    
+  })
+  
+  
+  
+  ############
+  ###OUTFIT###
+  ############
+  
+  pre_agg_outfit <- reactive({pre_agg(filtered_data(),
+                                     input$measure,
+                                     'Outfit')})
+  
+  Outfit_df <- reactive({common_agg(pre_agg_outfit(),
+                                   input$measure,
+                                   'Outfit',
+                                   TRUE)})
+  
+  #Filter Outfit observe event
+  observeEvent(
+    eventExpr = input$filterOutfit,
+    handlerExpr = {
+      
+      OE_Filter_common(Outfit_df(), filtered_Outfit, input$filterOutfit$y, 'Outfit')
+      
+    }
+  )
+  
+  #Unfilter Outfit event
+  observeEvent(
+    eventExpr = input$unfilterOutfit,
+    handlerExpr = {
+      
+      filtered_Outfit(0)
+      
+    }
+  )
+  
+  #Create barplot
+  
+  output$Outfit <- renderPlot({
+    
+    create_barplot(Outfit_df(), 'Outfit')
+    
+  })
+  
+  #Outfit hover label
+  output$Outfit_tooltip <- renderUI({
+    
+    info <- create_tooltip(input$hoverOutfit, Outfit_df(), Outfit_df()$Outfit, 40, -30)
+    
+    if (!is.null(info$Win)) {
+      
+      wellPanel(
+        style = info$style,
+        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+      )
+      
+    }
+    
+  })
+  
+  
+  ################
+  ###ATTACHMENT###
+  ################
+  
+  pre_agg_attachment <- reactive({pre_agg(filtered_data(),
+                                      input$measure,
+                                      'Attachment')})
+  
+  Attachment_df <- reactive({common_agg(pre_agg_attachment(),
+                                    input$measure,
+                                    'Attachment',
+                                    TRUE)})
+  
+  #Filter Attachment observe event
+  observeEvent(
+    eventExpr = input$filterAttachment,
+    handlerExpr = {
+      
+      OE_Filter_common(Attachment_df(), filtered_Attachment, input$filterAttachment$y, 'Attachment')
+      
+    }
+  )
+  
+  #Unfilter Attachment event
+  observeEvent(
+    eventExpr = input$unfilterAttachment,
+    handlerExpr = {
+      
+      filtered_Attachment(0)
+      
+    }
+  )
+  
+  #Create barplot
+  
+  output$Attachment <- renderPlot({
+    
+    create_barplot(Attachment_df(), 'Attachment')
+    
+  })
+  
+  #Attachment hover label
+  output$Attachment_tooltip <- renderUI({
+    
+    info <- create_tooltip(input$hoverAttachment, Attachment_df(), Attachment_df()$Attachment, 40, -30)
+    
+    if (!is.null(info$Win)) {
+      
+      wellPanel(
+        style = info$style,
+        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+      )
+      
+    }
+    
+  })
+  
+  ###########
+  ###MOUNT###
+  ###########
+  
+  pre_agg_mount <- reactive({pre_agg(filtered_data(),
+                                          input$measure,
+                                          'Mount')})
+  
+  Mount_df <- reactive({common_agg(pre_agg_mount(),
+                                        input$measure,
+                                        'Mount',
+                                        TRUE)})
+  
+  #Filter Mount observe event
+  observeEvent(
+    eventExpr = input$filterMount,
+    handlerExpr = {
+      
+      OE_Filter_common(Mount_df(), filtered_Mount, input$filterMount$y, 'Mount')
+      
+    }
+  )
+  
+  #Unfilter Mount event
+  observeEvent(
+    eventExpr = input$unfilterMount,
+    handlerExpr = {
+      
+      filtered_Mount(0)
+      
+    }
+  )
+  
+  #Create barplot
+  
+  output$Mount <- renderPlot({
+    
+    create_barplot(Mount_df(), 'Mount')
+    
+  })
+  
+  #Attachment hover label
+  output$Mount_tooltip <- renderUI({
+    
+    info <- create_tooltip(input$hoverMount, Mount_df(), Mount_df()$Mount, 40, -30)
+    
+    if (!is.null(info$Win)) {
+      
+      wellPanel(
+        style = info$style,
+        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+      )
+      
+    }
+    
+  })
+  
+  
+  
+  ##########
+  ###POSE###
+  ##########
+  
+  pre_agg_pose <- reactive({pre_agg(filtered_data(),
+                                     input$measure,
+                                     'Pose')})
+  
+  Pose_df <- reactive({common_agg(pre_agg_pose(),
+                                   input$measure,
+                                   'Pose',
+                                   TRUE)})
+  
+  #Filter Pose observe event
+  observeEvent(
+    eventExpr = input$filterPose,
+    handlerExpr = {
+      
+      OE_Filter_common(Pose_df(), filtered_Pose, input$filterPose$y, 'Pose')
+      
+    }
+  )
+  
+  #Unfilter Pose event
+  observeEvent(
+    eventExpr = input$unfilterPose,
+    handlerExpr = {
+      
+      filtered_Pose(0)
+      
+    }
+  )
+  
+  #Create barplot
+  
+  output$Pose <- renderPlot({
+    
+    create_barplot(Pose_df(), 'Pose')
+    
+  })
+  
+  #Pose hover label
+  output$Pose_tooltip <- renderUI({
+    
+    info <- create_tooltip(input$hoverPose, Pose_df(), Pose_df()$Pose, 40, -30)
+    
+    if (!is.null(info$Win)) {
+      
+      wellPanel(
+        style = info$style,
+        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+      )
+      
+    }
+    
+  })
+  
+  
   
   
   #################

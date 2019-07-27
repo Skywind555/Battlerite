@@ -2109,32 +2109,32 @@ server <- function(input, output) {
     if (input$SelectBattlerite1 != 'None') {
       
       p <- create_barplot(battlerites_agg2(), 'Battlerites')
-      
+    
     } 
     
     if(!is.null(input$SelectBattlerite2)){
+    
+    if (input$SelectBattlerite2 != 'None') {
       
-      if (input$SelectBattlerite2 != 'None') {
-        
-        p <- create_barplot(battlerites_agg3(), 'Battlerites')
-        
-      } 
+      p <- create_barplot(battlerites_agg3(), 'Battlerites')
+     
+    } 
+    
+    if(!is.null(input$SelectBattlerite3)) {
+    
+    if (input$SelectBattlerite3 != 'None') {
       
-      if(!is.null(input$SelectBattlerite3)) {
-        
-        if (input$SelectBattlerite3 != 'None') {
-          
-          p <- create_barplot(battlerites_agg4(), 'Battlerites')
-          
-        } 
-        
-        if(!is.null(input$SelectBattlerite4)) {
-          
-          if (input$SelectBattlerite4 != 'None') {
-            
-            p <- create_barplot(battlerites_agg5(), 'Battlerites')
-            
-          }}}}
+      p <- create_barplot(battlerites_agg4(), 'Battlerites')
+
+    } 
+    
+    if(!is.null(input$SelectBattlerite4)) {
+    
+    if (input$SelectBattlerite4 != 'None') {
+      
+      p <- create_barplot(battlerites_agg5(), 'Battlerites')
+      
+    }}}}
     
     p
     
@@ -2143,46 +2143,7 @@ server <- function(input, output) {
   #Battlerites hover label
   output$Battlerites_tooltip <- renderUI({
     
-    req(input$champion != 'None')
-    req(!is.null(input$SelectBattlerite1))
-    
-    if (input$SelectBattlerite1 == 'None') {
-    
-    info <- create_tooltip(input$hoverBattlerites, battlerites_agg1(), battlerites_agg1()$Battlerites, 40, -30)
-    
-    }
-    
-    if (input$SelectBattlerite1 != 'None') {
-    
-      info <- create_tooltip(input$hoverBattlerites, battlerites_agg2(), battlerites_agg2()$Battlerites, 40, -30)
-
-    }
-    
-    if(!is.null(input$SelectBattlerite2)){
-      
-      if (input$SelectBattlerite2 != 'None') {
-       
-        info <- create_tooltip(input$hoverBattlerites, battlerites_agg3(), battlerites_agg3()$Battlerites, 40, -30)
-        
-      }
-        
-      if(!is.null(input$SelectBattlerite3)) {
-        
-        if (input$SelectBattlerite3 != 'None') {
-          
-          info <- create_tooltip(input$hoverBattlerites, battlerites_agg4(), battlerites_agg4()$Battlerites, 40, -30)
-          
-        }
-      
-        if(!is.null(input$SelectBattlerite4)) {
-          
-          if (input$SelectBattlerite4 != 'None') {
-            
-            info <- create_tooltip(input$hoverBattlerites, battlerites_agg5(), battlerites_agg5()$Battlerites, 40, -30)
-             
-          }
-      
-        }}}
+    info <- create_tooltip(input$hoverBattlerites, battlerites_pre_agg(), battlerites_pre_agg()$Battlerites, 40, -30)
     
     if (!is.null(info$Win)) {
       
@@ -2192,7 +2153,6 @@ server <- function(input, output) {
       )
       
     }
-    
     
   })
   

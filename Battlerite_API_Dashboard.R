@@ -212,19 +212,37 @@ ui <- navbarPage('Navbar',
                             )
                           ),
                           
+               
                           fluidRow(
-                            column(width = 6,
-                                   plotOutput(outputId = 'Stats',
-                                              hover = hoverOpts('hoverStats'),
-                                              height = '300px'),
-                                   uiOutput('Stats_tooltip')
+                            column(width = 3,
+                                   div(DT::dataTableOutput('StatsWin'), style = "font-size:75%")
+                            ),
+                            
+                            column(width = 3,
+                                   div(DT::dataTableOutput('StatsLose'), style = "font-size:75%")
                             ),
                             
                             column(width = 6,
-                                   htmlOutput('BestAllyChampion2v2'),
-                                   htmlOutput('BestAllyChampion3v3'),
-                                   htmlOutput('WorstMatchups2v2'),
-                                   htmlOutput('WorstMatchups3v3')
+                                   
+                                   fluidRow(
+                                     column(width = 3,
+                                            htmlOutput('BestCompsLabel'),
+                                            div(tableOutput('BestComps'), style = "font-size:75%")),
+                                     column(width = 3, offset = 3,
+                                            htmlOutput('WorstCompsLabel'),
+                                            div(tableOutput('WorstComps'), style = "font-size:75%"))
+                                   ),
+                                   
+                                   fluidRow(
+                                     column(width = 3,
+                                            htmlOutput('BestMatchupsLabel'),
+                                            div(tableOutput('BestMatchups'), style = "font-size:75%")),
+                                     column(width = 3, offset = 3,
+                                            htmlOutput('WorstMatchupsLabel'),
+                                            div(tableOutput('WorstMatchups'), style = "font-size:75%"))
+                                   )
+                                   
+                          
                             )
                           ),
                           
@@ -311,7 +329,8 @@ server <- function(input, output) {
                                    filtered_region, filtered_league, filtered_servertype,
                                    filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
                                    filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
-                                   filtered_playertype, filtered_date) {
+                                   filtered_playertype, filtered_date, input_selectbattlerite1,
+                                   input_selectbattlerite2, input_selectbattlerite3, input_selectbattlerite4) {
     #Only include if have selected a champion
     req(input_champion != 'None')
     
@@ -326,45 +345,10 @@ server <- function(input, output) {
       data <- filter(data, Region %in% filtered_region)
     }
     
-    test <- 1
     
     if (filtered_regiongroup != 0) {
       data <- filter(data, `Region Group` %in% filtered_regiongroup)
     }
-    
-    
-    #Filter on number of battlerites selected, up to five
-    #if (sum(ifelse(filtered_battlerites == 0, 1, 0)) == 4) {
-    
-    # data <- filter(data, filtered_battlerites[1] == 1)
-    
-    #  } else if (sum(ifelse(filtered_battlerites == 0, 1, 0)) == 3) {
-    
-    #   data <- filter(data, filtered_battlerites[1] == 1) %>%
-    #    filter(filtered_battlerites[2] == 1)
-    
-    #  } else if (sum(ifelse(filtered_battlerites == 0, 1, 0)) == 2) {
-    
-    #   data <- filter(data, filtered_battlerites[1] == 1) %>%
-    #    filter(filtered_battlerites[2] == 1) %>%
-    #   filter(filtered_battlerites[3] == 1)
-    
-    #} else if (sum(ifelse(filtered_battlerites == 0, 1, 0)) == 1) {
-    
-    #  data <- filter(data, filtered_battlerites[1] == 1) %>%
-    #   filter(filtered_battlerites[2] == 1) %>%
-    #  filter(filtered_battlerites[3] == 1) %>%
-    # filter(filtered_battlerites[4] == 1)
-    
-    # } else if (sum(ifelse(filtered_battlerites == 0, 1, 0)) == 0) {
-    
-    #  data <- filter(data, filtered_battlerites[1] == 1) %>%
-    #    filter(filtered_battlerites[2] == 1) %>%
-    #    filter(filtered_battlerites[3] == 1) %>%
-    #    filter(filtered_battlerites[4] == 1) %>%
-    #    filter(filtered_battlerites[5] == 1)
-    
-    #   }
     
     #Filter on League
     if (filtered_league != 0) {
@@ -425,7 +409,150 @@ server <- function(input, output) {
       data <- filter(data, Pose %in% filtered_pose)
     }
     
+    if (!is.null(input_selectbattlerite1)) {
+      
+      if (input_selectbattlerite1 == 'None') {
+        
+        data <- data
+        
+      } else if (input_selectbattlerite1 != 'None') {
+        
+        data <- filter(data, !!as.name(input_selectbattlerite1) == 1)
+      }
+      
+      if (!is.null(input_selectbattlerite2)) {
+        
+        if (input_selectbattlerite2 != 'None') {
+          
+          data <- filter(data, !!as.name(input_selectbattlerite2) == 1)
+          
+        }
+        
+        if (!is.null(input_selectbattlerite3)) {
+          
+          if (input_selectbattlerite3 != 'None') {
+            
+            data <- filter(data, !!as.name(input_selectbattlerite3) == 1)
+          }
+          
+          if (!is.null(input_selectbattlerite4)) {
+            
+            if (input_selectbattlerite4 != 'None') {
+              
+              data <- filter(data, !!as.name(input_selectbattlerite4) == 1)
+            }
+            
+          }}}}
+    
     return(data)
+    
+  }
+  
+  
+  create_filtered_data2 <- function(champ_df, input_champion, input_total_time_played_min, input_total_time_played_max, 
+                                   input_champ_played_min, input_champ_played_max,
+                                   filtered_region, filtered_league, filtered_servertype,
+                                   filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
+                                   filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
+                                   filtered_playertype, filtered_date) {
+    #Only include if have selected a champion
+    req(input_champion != 'None')
+    
+    #Filter total time played
+    data <- filter(champ_df, between(Total_Time_Played, input_total_time_played_min, input_total_time_played_max))
+    
+    #Filter champ time played
+    data <- filter(data, between(Champion_Time_Played, input_champ_played_min, input_champ_played_max))
+    
+    #Filter on region
+    if (filtered_region != 0) {
+      data <- filter(data, Region %in% filtered_region)
+    }
+    
+    if (filtered_regiongroup != 0) {
+      data <- filter(data, `Region Group` %in% filtered_regiongroup)
+    }
+    
+    #Filter on League
+    if (filtered_league != 0) {
+      data <- filter(data, League %in% filtered_league)
+    }
+    
+    #Filter player type
+    if (filtered_playertype != 0) {
+      data <- filter(data, Player_Type %in% filtered_playertype)
+    }
+    #Filter Date
+    if (filtered_date != 0) {
+      data <- filter(data, Date %in% filtered_date)
+    }
+    
+    #Filter on Server Type (Need to add solo queue in one column in match type)
+    if (filtered_servertype != 0) {
+      data <- filter(data, Server_Type %in% filtered_servertype)
+    }
+    
+    #Filter on Map played
+    if (filtered_map != 0) {
+      data <- filter(data, Map %in% filtered_map)
+    }
+    
+    #Filter on casual vs ranked
+    if (filtered_casual != 0) {
+      data <- filter(data, Ranking_Type %in% filtered_casual)
+    }
+    
+    #Filter on Mount
+    if (filtered_mount != 0) {
+      data <- filter(data, Mount %in% filtered_mount)
+    }
+    
+    #Filter on Title
+    if (filtered_title != 0) {
+      data <- filter(data, Title %in% filtered_title)
+    }
+    
+    #Filter on Avatar
+    if (filtered_avatar != 0) {
+      data <- filter(data, Avatar %in% filtered_avatar)
+    }
+    
+    #Filter on Outfit
+    if (filtered_outfit != 0) {
+      data <- filter(data, Outfit %in% filtered_outfit)
+    }
+    
+    #Filter on Attachment/Weapon
+    if (filtered_attachment != 0) {
+      data <- filter(data, Attachment %in% filtered_attachment)
+    }
+    
+    #Filter on Pose
+    if (filtered_pose != 0) {
+      data <- filter(data, Pose %in% filtered_pose)
+    }
+    
+    #Check for columns with all 0's and remove
+    remove_cols <- c()
+    for (battlerite in c(names(data)[76:length(data)])) {
+      
+      column <- names(data) %in% battlerite
+      col_sum <- sum(data[, column])
+      
+      if (col_sum == 0) {
+        
+        remove_cols <- c(remove_cols, battlerite)
+        
+      }
+      
+    }
+    
+    remove_cols <- names(data) %in% remove_cols
+    
+    data <- data[, !remove_cols]
+    
+    return(data)
+    
     
   }
   
@@ -789,9 +916,36 @@ server <- function(input, output) {
                                                   filtered_Pose(),
                                                   filtered_RegionGroup(),
                                                   filtered_PlayerType(),
-                                                  filtered_Date()
+                                                  filtered_Date(),
+                                                  input$SelectBattlerite1b,
+                                                  input$SelectBattlerite2b,
+                                                  input$SelectBattlerite3b,
+                                                  input$SelectBattlerite4b
   )})
   
+  
+  #Filtered data for battlerites
+  filtered_data2 <- reactive({create_filtered_data2(champ_df(),
+                                                    input$champion,
+                                                    input$total_played[1],
+                                                    input$total_played[2],
+                                                    input$champ_played[1],
+                                                    input$champ_played[2],
+                                                    filtered_Region(),
+                                                    filtered_League(),
+                                                    filtered_Servertype(),
+                                                    filtered_Map(),
+                                                    filtered_Casual(),
+                                                    filtered_Mount(),
+                                                    filtered_Title(),
+                                                    filtered_Avatar(),
+                                                    filtered_Outfit(),
+                                                    filtered_Attachment(),
+                                                    filtered_Pose(),
+                                                    filtered_RegionGroup(),
+                                                    filtered_PlayerType(),
+                                                    filtered_Date()
+  )})
   
   ############
   ###REGION###
@@ -801,6 +955,7 @@ server <- function(input, output) {
   #Create aggregate region data
   Region_df <- reactive({region_agg(filtered_data(),
                                     input$measure)})
+  
   
   
   #Filter Region observe event
@@ -834,8 +989,15 @@ server <- function(input, output) {
   ###REGION GROUP###
   ##################
   
-  #Aggregate Region group
-  RegionGroup_df <- reactive({region_table_agg(Region_df())})
+  #Pre agg
+  pre_agg_regiongroup <- reactive({pre_agg(filtered_data(),
+                                           input$measure,
+                                           'Region Group')})
+  
+  RegionGroup_df <- reactive({common_agg(pre_agg_regiongroup(),
+                                         input$measure,
+                                         'Region Group',
+                                         FALSE)})
   
   
   #Filter Region Group observe event
@@ -1505,8 +1667,199 @@ server <- function(input, output) {
     
   })
   
+  ###################
+  ###AVERAGE STATS###
+  ###################
+  
+  stats_pre_agg <- reactive({
+    
+    data <- filtered_data() %>%
+      select(Game_ID, User_ID, Round_Won, Kills, Deaths, Assists, Damage, Damage_Received, Protection, 
+             Protection_Received, Control, Control_Received, Energy_Used, Energy_Gained, Abilities_Used,
+             Num_Energy_Used, Orb_Kills, First_Orb, MVP, Round_Length, Total_Score, Highest_Score,
+             Health_Shards, Energy_Shards, Time_Alive, Queue_Time) %>%
+      group_by(Game_ID, User_ID) %>%
+      summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0),
+                Kills = mean(Kills),
+                Deaths = mean(Deaths),
+                Damage = mean(Damage),
+                Damage_Received = mean(Damage_Received),
+                Protection = mean(Protection),
+                Protection_Received = mean(Protection_Received),
+                Control = mean(Control),
+                Control_Received = mean(Control_Received),
+                Energy_Used = mean(Energy_Used),
+                Energy_Gained = mean(Energy_Gained),
+                Abilities_Used = mean(Abilities_Used),
+                Num_Energy_Used = mean(Num_Energy_Used),
+                Orb_Kills = mean(Orb_Kills),
+                First_Orb = mean(First_Orb),
+                MVP = mean(MVP),
+                Round_Length = mean(Round_Length),
+                Total_Score = mean(Total_Score),
+                Highest_Score = mean(Highest_Score),
+                Health_Shards = mean(Health_Shards),
+                Energy_Shards = mean(Energy_Shards),
+                Time_Alive = mean(Time_Alive),
+                Queue_Time = mean(Queue_Time))
+    
+  })
+  
+  stats_agg <- reactive({
+    
+    data <- stats_pre_agg() %>%
+      ungroup() %>%
+      group_by(Game_Won) %>%
+      summarize(Kills = mean(Kills),
+                Deaths = mean(Deaths),
+                Damage = mean(Damage),
+                Damage_Received = mean(Damage_Received),
+                Protection = mean(Protection),
+                Protection_Received = mean(Protection_Received),
+                Control = mean(Control),
+                Control_Received = mean(Control_Received),
+                Energy_Used = mean(Energy_Used),
+                Energy_Gained = mean(Energy_Gained),
+                Abilities_Used = mean(Abilities_Used),
+                Num_Energy_Used = mean(Num_Energy_Used),
+                Orb_Kills = mean(Orb_Kills),
+                First_Orb = mean(First_Orb),
+                MVP = mean(MVP),
+                Round_Length = mean(Round_Length),
+                Total_Score = mean(Total_Score),
+                Highest_Score = mean(Highest_Score),
+                Health_Shards = mean(Health_Shards),
+                Energy_Shards = mean(Energy_Shards),
+                Queue_Time = mean(Queue_Time))
+
+  })
+  
+  stats_agg_lose <- reactive({
+    
+    data <- filter(stats_agg(), Game_Won == 0)
+    
+  })
+  
+  stats_agg_win <- reactive({
+    
+    data <- filter(stats_agg(), Game_Won == 1)
+    
+  })
+  
+  stats_win_df <- reactive({
+    
+    #Remove Game_Won column
+    data <- stats_agg_win()[,2:length(stats_agg_win())]
+    data <- gather(data, key = 'Measure(Wins)', value = 'Value')
+    data$Value <- round(data$Value, 2)
+    data
+
+
+    
+  })
+  
+  stats_lose_df <- reactive({
+    
+    #Remove Game_Won column
+    data <- stats_agg_lose()[,2:length(stats_agg_lose())]
+    data <- gather(data, key = 'Measure(Losses)', value = 'Value')
+    data$Value <- round(data$Value, 2)
+    data
+
+    
+  })
   
   
+  output$StatsWin <- DT::renderDataTable(expr = {
+    
+    datatable(stats_win_df())
+    
+  })
+  
+  output$StatsLose <- DT::renderDataTable(expr = {
+    
+    datatable(stats_lose_df())
+    
+  })
+  
+  ##############
+  ###MATCHUPS###
+  ##############
+  
+  ally_comp_pre_agg <- reactive({
+    
+    data <- filtered_data() %>%
+      select(Game_ID, User_ID, Round_Won, Team_Comp, Server_Type, Team_Roles) %>%
+      group_by(Game_ID, User_ID, Team_Comp, Server_Type, Team_Roles) %>%
+      summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
+    
+  })
+  
+  ally_comp_agg <- reactive({
+    
+    data <- ally_comp_pre_agg() %>%
+      ungroup() %>%
+      select(Game_Won, Team_Comp, Server_Type, Team_Roles) %>%
+      group_by(Team_Comp, Team_Roles, Server_Type) %>%
+      summarize(Game_Won = round(mean(Game_Won)*100, 2)) %>%
+      arrange(desc(Game_Won))
+    
+  })
+  
+  enemy_comp_pre_agg <- reactive({
+    
+    data <- filtered_data() %>%
+      select(Game_ID, User_ID, Round_Won, Enemy_Comp, Server_Type, Enemy_Roles) %>%
+      group_by(Game_ID, User_ID, Enemy_Comp, Server_Type, Enemy_Roles) %>%
+      summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
+    
+  })
+  
+  
+  enemy_comp_agg <- reactive({
+    
+    data <- enemy_comp_pre_agg() %>%
+      ungroup() %>%
+      select(Game_Won, Enemy_Comp, Server_Type, Enemy_Roles) %>%
+      group_by(Enemy_Comp, Enemy_Roles, Server_Type) %>%
+      summarize(Game_Won = round(mean(Game_Won)*100, 2)) %>%
+      arrange(desc(Game_Won))
+    
+  })
+  
+  
+  output$BestCompsLabel <- renderUI({
+    
+    HTML('<font size = "2"><b><u>Top 5 Best Comps</font></b></u>')
+    
+  })
+  output$BestComps <- renderTable(head(ally_comp_agg(), 5)
+    )
+  
+  output$WorstCompsLabel <- renderUI({
+    
+    HTML('<font size = "2"><b><u>Top 5 Worst Comps</font></b></u>')
+    
+  })
+  
+  output$WorstComps <- renderTable(tail(ally_comp_agg(), 5)
+  )
+  
+  output$BestMatchupsLabel <- renderUI({
+    
+    HTML('<font size = "2"><b><u>Top 5 Best Matchups</font></b></u>')
+    
+  })
+  
+  output$BestMatchups <- renderTable(head(enemy_comp_agg(), 5))
+  
+  output$WorstMatchupsLabel <- renderUI({
+    
+    HTML('<font size = "2"><b><u>Top 5 Worst Matchups</font></b></u>')
+    
+  })
+  
+  output$WorstMatchups <- renderTable(tail(enemy_comp_agg(), 5))
   
   #################
   ###BATTLERITES###
@@ -1515,89 +1868,281 @@ server <- function(input, output) {
   #Create battlerite selection pool based on champion
   output$BattleriteInteractive1 <- renderUI({
     
-    selectInput(inputId = 'SelectBattlerite1',
-                label = 'Choose Battlerite 1: ',
-                choices = c('None', names(champ_df())[76:length(names(champ_df()))]),
-                multiple = FALSE,
-                selected = 'None'
-    )
+    if (!is.null(input$SelectBattlerite1)) {
+      
+      if (!is.null(input$SelectBattlerite1b)) {
+      
+      selectInput(inputId = 'SelectBattlerite1b',
+                  label = 'Choose Battlerite 1: ',
+                  choices = c('None', names(filtered_data2())[76:length(names(filtered_data2()))]),
+                  multiple = FALSE,
+                  selected = input$SelectBattlerite1b
+      )
     
+      } else {
+        
+  
+        selectInput(inputId = 'SelectBattlerite1b',
+                    label = 'Choose Battlerite 1: ',
+                    choices = c('None', names(filtered_data2())[76:length(names(filtered_data2()))]),
+                    multiple = FALSE,
+                    selected = input$SelectBattlerite1)
+        
+      }
+        
+    } else {
+      
+      selectInput(inputId = 'SelectBattlerite1',
+                  label = 'Choose Battlerite 1: ',
+                  choices = c('None', names(filtered_data2())[76:length(names(filtered_data2()))]),
+                  multiple = FALSE,
+                  selected = 'None')
+      
+    }
   })
   
   output$BattleriteInteractive2 <- renderUI({
     
-    if(input$SelectBattlerite1 != 'None' & length(adjusted_champ_df1()) > 76) {
+    if(input$SelectBattlerite1b != 'None' & length(adjusted_champ_df1()) > 76) {
       
-      selectInput(inputId = 'SelectBattlerite2',
-                  label = 'Choose Battlerite 2: ',
-                  choices = c('None', names(adjusted_champ_df1())[76:length(names(adjusted_champ_df1()))]),
-                  multiple = FALSE,
-                  selected = 'None'
-      )
-    } else {
+      if (!is.null(input$SelectBattlerite2)) {
+        
+        if (!is.null(input$SelectBattlerite2b)) {
+          
+          selectInput(inputId = 'SelectBattlerite2b',
+                      label = 'Choose Battlerite 2: ',
+                      choices = c('None', names(adjusted_champ_df1())[76:length(names(adjusted_champ_df1()))]),
+                      multiple = FALSE,
+                      selected = input$SelectBattlerite2b)
+          
+        } else {
+          
+          selectInput(inputId = 'SelectBattlerite2b',
+                      label = 'Choose Battlerite 2: ',
+                      choices = c('None', names(adjusted_champ_df1())[76:length(names(adjusted_champ_df1()))]),
+                      multiple = FALSE,
+                      selected = input$SelectBattlerite2)
+          
+        }
+        
+      } else {
+        
+        selectInput(inputId = 'SelectBattlerite2',
+                    label = 'Choose Battlerite 2: ',
+                    choices = c('None', names(adjusted_champ_df1())[76:length(names(adjusted_champ_df1()))]),
+                    multiple = FALSE,
+                    selected = 'None')
+        
+      }
       
-      selectInput(inputId = 'SelectBattlerite2',
-                  label = 'Choose Battlerite 2: ',
-                  choices = c('None'),
-                  multiple = FALSE,
-                  selected = 'None'
-                  
-      )
-    }
+    } 
+    
   })
   
   output$BattleriteInteractive3 <- renderUI({
     
-    req(input$SelectBattlerite2 != 'None' & length(adjusted_champ_df2()) > 76)
-    
-    selectInput(inputId = 'SelectBattlerite3',
-                label = 'Choose Battlerite 3: ',
-                choices = c('None', names(adjusted_champ_df2())[76:length(names(adjusted_champ_df2()))]),
-                multiple = FALSE,
-                selected = 'None'
-    )
-    
+    if(input$SelectBattlerite2b != 'None' & length(adjusted_champ_df2()) > 76) {
+      
+      if (!is.null(input$SelectBattlerite3)) {
+        
+        if (!is.null(input$SelectBattlerite3b)) {
+          
+          selectInput(inputId = 'SelectBattlerite3b',
+                      label = 'Choose Battlerite 3: ',
+                      choices = c('None', names(adjusted_champ_df2())[76:length(names(adjusted_champ_df2()))]),
+                      multiple = FALSE,
+                      selected = input$SelectBattlerite3b)
+          
+        } else {
+          
+          selectInput(inputId = 'SelectBattlerite3b',
+                      label = 'Choose Battlerite 3: ',
+                      choices = c('None', names(adjusted_champ_df2())[76:length(names(adjusted_champ_df2()))]),
+                      multiple = FALSE,
+                      selected = input$SelectBattlerite3)
+          
+        }
+        
+      } else {
+        
+        selectInput(inputId = 'SelectBattlerite3',
+                    label = 'Choose Battlerite 3: ',
+                    choices = c('None', names(adjusted_champ_df2())[76:length(names(adjusted_champ_df2()))]),
+                    multiple = FALSE,
+                    selected = 'None')
+        
+      }
+      
+    } 
     
   })
   
   output$BattleriteInteractive4 <- renderUI({
     
-    req(input$SelectBattlerite3 != 'None' & length(adjusted_champ_df3()) > 76)
-    
-    selectInput(inputId = 'SelectBattlerite4',
-                label = 'Choose Battlerite 4: ',
-                choices = c('None', names(adjusted_champ_df3())[76:length(names(adjusted_champ_df3()))]),
-                multiple = FALSE,
-                selected = 'None'
-    )
+    if(input$SelectBattlerite3b != 'None' & length(adjusted_champ_df3()) > 76) {
+      
+      if (!is.null(input$SelectBattlerite4)) {
+        
+        if (!is.null(input$SelectBattlerite4b)) {
+          
+          selectInput(inputId = 'SelectBattlerite4b',
+                      label = 'Choose Battlerite 4: ',
+                      choices = c('None', names(adjusted_champ_df3())[76:length(names(adjusted_champ_df3()))]),
+                      multiple = FALSE,
+                      selected = input$SelectBattlerite4b)
+          
+        } else {
+          
+          selectInput(inputId = 'SelectBattlerite4b',
+                      label = 'Choose Battlerite 4: ',
+                      choices = c('None', names(adjusted_champ_df3())[76:length(names(adjusted_champ_df3()))]),
+                      multiple = FALSE,
+                      selected = input$SelectBattlerite4)
+          
+        }
+        
+      } else {
+        
+        selectInput(inputId = 'SelectBattlerite4',
+                    label = 'Choose Battlerite 4: ',
+                    choices = c('None', names(adjusted_champ_df3())[76:length(names(adjusted_champ_df3()))]),
+                    multiple = FALSE,
+                    selected = 'None')
+        
+      }
+      
+    } 
     
   })
   
   output$BattleriteInteractive5 <- renderUI({
     
-    req(input$SelectBattlerite4 != 'None' & length(adjusted_champ_df4()) > 76)
-    
-    selectInput(inputId = 'SelectBattlerite5',
-                label = 'Choose Battlerite 5: ',
-                choices = c('None', names(adjusted_champ_df4())[76:length(names(adjusted_champ_df4()))]),
-                multiple = FALSE,
-                selected = 'None'
-    )
+    if(input$SelectBattlerite4b != 'None' & length(adjusted_champ_df4()) > 76) {
+      
+      if (!is.null(input$SelectBattlerite5)) {
+        
+        if (!is.null(input$SelectBattlerite5b)) {
+          
+          selectInput(inputId = 'SelectBattlerite5b',
+                      label = 'Choose Battlerite 5: ',
+                      choices = c('None', names(adjusted_champ_df4())[76:length(names(adjusted_champ_df4()))]),
+                      multiple = FALSE,
+                      selected = input$SelectBattlerite5b)
+          
+        } else {
+          
+          selectInput(inputId = 'SelectBattlerite5b',
+                      label = 'Choose Battlerite 5: ',
+                      choices = c('None', names(adjusted_champ_df4())[76:length(names(adjusted_champ_df4()))]),
+                      multiple = FALSE,
+                      selected = input$SelectBattlerite5)
+          
+        }
+        
+      } else {
+        
+        selectInput(inputId = 'SelectBattlerite5',
+                    label = 'Choose Battlerite 5: ',
+                    choices = c('None', names(adjusted_champ_df4())[76:length(names(adjusted_champ_df4()))]),
+                    multiple = FALSE,
+                    selected = 'None')
+        
+      }
+      
+    } 
     
   })
   
-  
-  
-  #Adjusted champ df
-  adjusted_champ_df1 <- reactive({
+  create_adjusted_champ <- function(input_selectbattlerite, champ_df, input_total_time_played_min, input_total_time_played_max, 
+                                    input_champ_played_min, input_champ_played_max,
+                                    filtered_region, filtered_league, filtered_servertype,
+                                    filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
+                                    filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
+                                    filtered_playertype, filtered_date) {
+
+    req(input_selectbattlerite != 'None') 
     
-    req(input$SelectBattlerite1 != 'None') 
-    
-    data <- filter(champ_df(), !!as.name(input$SelectBattlerite1) == 1)
+    data <- filter(champ_df, !!as.name(input_selectbattlerite) == 1)
     
     #Adjust output battlerite to not include selected battlerite
-    remove_cols <- names(data) %in% input$SelectBattlerite1
+    remove_cols <- names(data) %in% input_selectbattlerite
     data <- data[, !remove_cols]
+    
+    
+    #Filter total time played
+    data <- filter(data, between(Total_Time_Played, input_total_time_played_min, input_total_time_played_max))
+    
+    #Filter champ time played
+    data <- filter(data, between(Champion_Time_Played, input_champ_played_min, input_champ_played_max))
+    
+    #Filter on region
+    if (filtered_region != 0) {
+      data <- filter(data, Region %in% filtered_region)
+    }
+    
+    
+    if (filtered_regiongroup != 0) {
+      data <- filter(data, `Region Group` %in% filtered_regiongroup)
+    }
+    
+    #Filter on League
+    if (filtered_league != 0) {
+      data <- filter(data, League %in% filtered_league)
+    }
+    
+    #Filter player type
+    if (filtered_playertype != 0) {
+      data <- filter(data, Player_Type %in% filtered_playertype)
+    }
+    #Filter Date
+    if (filtered_date != 0) {
+      data <- filter(data, Date %in% filtered_date)
+    }
+    
+    #Filter on Server Type (Need to add solo queue in one column in match type)
+    if (filtered_servertype != 0) {
+      data <- filter(data, Server_Type %in% filtered_servertype)
+    }
+    
+    #Filter on Map played
+    if (filtered_map != 0) {
+      data <- filter(data, Map %in% filtered_map)
+    }
+    
+    #Filter on casual vs ranked
+    if (filtered_casual != 0) {
+      data <- filter(data, Ranking_Type %in% filtered_casual)
+    }
+    
+    #Filter on Mount
+    if (filtered_mount != 0) {
+      data <- filter(data, Mount %in% filtered_mount)
+    }
+    
+    #Filter on Title
+    if (filtered_title != 0) {
+      data <- filter(data, Title %in% filtered_title)
+    }
+    
+    #Filter on Avatar
+    if (filtered_avatar != 0) {
+      data <- filter(data, Avatar %in% filtered_avatar)
+    }
+    
+    #Filter on Outfit
+    if (filtered_outfit != 0) {
+      data <- filter(data, Outfit %in% filtered_outfit)
+    }
+    
+    #Filter on Attachment/Weapon
+    if (filtered_attachment != 0) {
+      data <- filter(data, Attachment %in% filtered_attachment)
+    }
+    
+    #Filter on Pose
+    if (filtered_pose != 0) {
+      data <- filter(data, Pose %in% filtered_pose)
+    }
     
     remove_cols <- c()
     
@@ -1619,6 +2164,33 @@ server <- function(input, output) {
     
     data <- data[, !remove_cols]
     data
+    return(data)
+    
+  }
+  
+  #Adjusted champ df
+  adjusted_champ_df1 <- reactive({
+    
+    create_adjusted_champ(input$SelectBattlerite1b, 
+                          filtered_data2(),
+                          input$total_played[1],
+                          input$total_played[2],
+                          input$champ_played[1],
+                          input$champ_played[2],
+                          filtered_Region(),
+                          filtered_League(),
+                          filtered_Servertype(),
+                          filtered_Map(),
+                          filtered_Casual(),
+                          filtered_Mount(),
+                          filtered_Title(),
+                          filtered_Avatar(),
+                          filtered_Outfit(),
+                          filtered_Attachment(),
+                          filtered_Pose(),
+                          filtered_RegionGroup(),
+                          filtered_PlayerType(),
+                          filtered_Date())
     
   })
   
@@ -1626,126 +2198,94 @@ server <- function(input, output) {
   #Adjusted champ df
   adjusted_champ_df2 <- reactive({
     
-    req(input$SelectBattlerite2 != 'None') 
-    
-    data <- filter(adjusted_champ_df1(), !!as.name(input$SelectBattlerite2) == 1)
-    
-    #Adjust output battlerite to not include selected battlerite
-    remove_cols <- names(data) %in% input$SelectBattlerite2
-    data <- data[, !remove_cols]
-    
-    remove_cols <- c()
-    
-    #Check for columns with all 0's and remove
-    for (battlerite in c(names(data)[76:length(data)])) {
-      
-      column <- names(data) %in% battlerite
-      col_sum <- sum(data[, column])
-      
-      if (col_sum == 0) {
-        
-        remove_cols <- c(remove_cols, battlerite)
-        
-      }
-      
-    }
-    
-    remove_cols <- names(data) %in% remove_cols
-    
-    data <- data[, !remove_cols]
-    data
-    
+  
+    create_adjusted_champ(input$SelectBattlerite2b, 
+                          adjusted_champ_df1(),
+                          input$total_played[1],
+                          input$total_played[2],
+                          input$champ_played[1],
+                          input$champ_played[2],
+                          filtered_Region(),
+                          filtered_League(),
+                          filtered_Servertype(),
+                          filtered_Map(),
+                          filtered_Casual(),
+                          filtered_Mount(),
+                          filtered_Title(),
+                          filtered_Avatar(),
+                          filtered_Outfit(),
+                          filtered_Attachment(),
+                          filtered_Pose(),
+                          filtered_RegionGroup(),
+                          filtered_PlayerType(),
+                          filtered_Date())
+
   })
   
   
   #Adjusted champ df
   adjusted_champ_df3 <- reactive({
     
-    req(input$SelectBattlerite3 != 'None') 
-    
-    data <- filter(adjusted_champ_df2(), !!as.name(input$SelectBattlerite3) == 1)
-    
-    #Adjust output battlerite to not include selected battlerite
-    remove_cols <- names(data) %in% input$SelectBattlerite3
-    data <- data[, !remove_cols]
-    
-    remove_cols <- c()
-    
-    #Check for columns with all 0's and remove
-    for (battlerite in c(names(data)[76:length(data)])) {
-      
-      column <- names(data) %in% battlerite
-      col_sum <- sum(data[, column])
-      
-      if (col_sum == 0) {
-        
-        remove_cols <- c(remove_cols, battlerite)
-        
-      }
-      
-    }
-    
-    remove_cols <- names(data) %in% remove_cols
-    
-    data <- data[, !remove_cols]
-    data
+    create_adjusted_champ(input$SelectBattlerite3b, 
+                          adjusted_champ_df2(),
+                          input$total_played[1],
+                          input$total_played[2],
+                          input$champ_played[1],
+                          input$champ_played[2],
+                          filtered_Region(),
+                          filtered_League(),
+                          filtered_Servertype(),
+                          filtered_Map(),
+                          filtered_Casual(),
+                          filtered_Mount(),
+                          filtered_Title(),
+                          filtered_Avatar(),
+                          filtered_Outfit(),
+                          filtered_Attachment(),
+                          filtered_Pose(),
+                          filtered_RegionGroup(),
+                          filtered_PlayerType(),
+                          filtered_Date())
     
   })
   
   #Adjusted champ df
   adjusted_champ_df4 <- reactive({
     
-    req(input$SelectBattlerite4 != 'None') 
-    
-    data <- filter(adjusted_champ_df3(), !!as.name(input$SelectBattlerite4) == 1)
-    
-    #Adjust output battlerite to not include selected battlerite
-    remove_cols <- names(data) %in% input$SelectBattlerite4
-    data <- data[, !remove_cols]
-    
-    remove_cols <- c()
-    
-    #Check for columns with all 0's and remove
-    for (battlerite in c(names(data)[76:length(data)])) {
-      
-      column <- names(data) %in% battlerite
-      col_sum <- sum(data[, column])
-      
-      if (col_sum == 0) {
-        
-        remove_cols <- c(remove_cols, battlerite)
-        
-      }
-      
-    }
-    
-    remove_cols <- names(data) %in% remove_cols
-    
-    data <- data[, !remove_cols]
-    data
+    create_adjusted_champ(input$SelectBattlerite4b, 
+                          adjusted_champ_df3(),
+                          input$total_played[1],
+                          input$total_played[2],
+                          input$champ_played[1],
+                          input$champ_played[2],
+                          filtered_Region(),
+                          filtered_League(),
+                          filtered_Servertype(),
+                          filtered_Map(),
+                          filtered_Casual(),
+                          filtered_Mount(),
+                          filtered_Title(),
+                          filtered_Avatar(),
+                          filtered_Outfit(),
+                          filtered_Attachment(),
+                          filtered_Pose(),
+                          filtered_RegionGroup(),
+                          filtered_PlayerType(),
+                          filtered_Date())
     
   })
   
   
-  
-  
-  
-  
-  
-  
-  battlerites_agg1 <- reactive({
-    
-    req(input$champion != 'None')
-    req(!is.null(input$SelectBattlerite1))
-    req(input$SelectBattlerite1 == 'None')
+  create_battlerites_agg <- function(input_selectbattlerite, champ_df,
+                                     input_measure) {
     
     Battlerites = c()
     Win_Rate = c()
     
-    for (battlerite in c(names(champ_df())[76:length(names(champ_df()))])) {
+    for (battlerite in c(names(champ_df)[76:length(names(champ_df))])) {
       
-      pre_agg_battlerites1 <- pre_agg(champ_df(),
-                                      input$measure,
+      pre_agg_battlerites1 <- pre_agg(champ_df,
+                                      input_measure,
                                       battlerite)
       
       var <- as.name(battlerite)
@@ -1766,6 +2306,19 @@ server <- function(input, output) {
     br_winrates <- data.frame(Battlerites, Win_Rate, stringsAsFactors = TRUE)
     br_winrates <- br_winrates %>%
       mutate(Battlerites = fct_reorder(Battlerites, Win_Rate))
+    
+    return(br_winrates)
+    
+  }
+  
+  
+  battlerites_agg1 <- reactive({
+    
+    req(input$champion != 'None')
+    req(!is.null(input$SelectBattlerite1))
+    req(input$SelectBattlerite1b == 'None')
+    
+    create_battlerites_agg(input$SelectBattlerite1b, filtered_data2(), input$measure)
     
   })
   
@@ -1773,71 +2326,19 @@ server <- function(input, output) {
     
     req(input$champion != 'None')
     req(!is.null(input$SelectBattlerite1))
-    req(input$SelectBattlerite1 != 'None')
+    req(input$SelectBattlerite1b != 'None')
     
-    Battlerites = c()
-    Win_Rate = c()
+    create_battlerites_agg(input$SelectBattlerite1b, adjusted_champ_df1(), input$measure)
     
-    for (battlerite in c(names(adjusted_champ_df1())[76:length(names(adjusted_champ_df1()))])) {
-      
-      pre_agg_battlerites1 <- pre_agg(adjusted_champ_df1(),
-                                      input$measure,
-                                      battlerite)
-      
-      var <- as.name(battlerite)
-      
-      br_filter <- filter(pre_agg_battlerites1, !!var == 1)
-      
-      battlerites1_df <- br_filter %>%
-        ungroup() %>%
-        select(!!var, Game_Won) %>%
-        group_by(!!var) %>%
-        summarize(Win_Rate = round(mean(Game_Won)*100, 2))
-      
-      Battlerites <- c(Battlerites, names(battlerites1_df)[1])
-      Win_Rate <- c(Win_Rate, battlerites1_df$Win_Rate)
-      
-    }
-    
-    br_winrates <- data.frame(Battlerites, Win_Rate, stringsAsFactors = TRUE)
-    br_winrates <- br_winrates %>%
-      mutate(Battlerites = fct_reorder(Battlerites, Win_Rate))
     
   })
   
   battlerites_agg3 <- reactive({
     
     req(input$champion != 'None')
-    req(!is.null(input$SelectBattlerite2))
-    req(input$SelectBattlerite2 != 'None')
+    req(input$SelectBattlerite2b != 'None')
     
-    Battlerites = c()
-    Win_Rate = c()
-    
-    for (battlerite in c(names(adjusted_champ_df2())[76:length(names(adjusted_champ_df2()))])) {
-      
-      pre_agg_battlerites1 <- pre_agg(adjusted_champ_df2(),
-                                      input$measure,
-                                      battlerite)
-      
-      var <- as.name(battlerite)
-      
-      br_filter <- filter(pre_agg_battlerites1, !!var == 1)
-      
-      battlerites1_df <- br_filter %>%
-        ungroup() %>%
-        select(!!var, Game_Won) %>%
-        group_by(!!var) %>%
-        summarize(Win_Rate = round(mean(Game_Won)*100, 2))
-      
-      Battlerites <- c(Battlerites, names(battlerites1_df)[1])
-      Win_Rate <- c(Win_Rate, battlerites1_df$Win_Rate)
-      
-    }
-    
-    br_winrates <- data.frame(Battlerites, Win_Rate, stringsAsFactors = TRUE)
-    br_winrates <- br_winrates %>%
-      mutate(Battlerites = fct_reorder(Battlerites, Win_Rate))
+    create_battlerites_agg(input$SelectBattlerite2b, adjusted_champ_df2(), input$measure)
     
   })
   
@@ -1845,35 +2346,9 @@ server <- function(input, output) {
     
     req(input$champion != 'None')
     req(!is.null(input$SelectBattlerite3))
-    req(input$SelectBattlerite3 != 'None')
+    req(input$SelectBattlerite3b != 'None')
     
-    Battlerites = c()
-    Win_Rate = c()
-    
-    for (battlerite in c(names(adjusted_champ_df3())[76:length(names(adjusted_champ_df3()))])) {
-      
-      pre_agg_battlerites1 <- pre_agg(adjusted_champ_df3(),
-                                      input$measure,
-                                      battlerite)
-      
-      var <- as.name(battlerite)
-      
-      br_filter <- filter(pre_agg_battlerites1, !!var == 1)
-      
-      battlerites1_df <- br_filter %>%
-        ungroup() %>%
-        select(!!var, Game_Won) %>%
-        group_by(!!var) %>%
-        summarize(Win_Rate = round(mean(Game_Won)*100, 2))
-      
-      Battlerites <- c(Battlerites, names(battlerites1_df)[1])
-      Win_Rate <- c(Win_Rate, battlerites1_df$Win_Rate)
-      
-    }
-    
-    br_winrates <- data.frame(Battlerites, Win_Rate, stringsAsFactors = TRUE)
-    br_winrates <- br_winrates %>%
-      mutate(Battlerites = fct_reorder(Battlerites, Win_Rate))
+    create_battlerites_agg(input$SelectBattlerite3b, adjusted_champ_df3(), input$measure)
     
   })
   
@@ -1881,216 +2356,9 @@ server <- function(input, output) {
     
     req(input$champion != 'None')
     req(!is.null(input$SelectBattlerite4))
-    req(input$SelectBattlerite4 != 'None')
+    req(input$SelectBattlerite4b != 'None')
     
-    Battlerites = c()
-    Win_Rate = c()
-    
-    for (battlerite in c(names(adjusted_champ_df4())[76:length(names(adjusted_champ_df4()))])) {
-      
-      pre_agg_battlerites1 <- pre_agg(adjusted_champ_df4(),
-                                      input$measure,
-                                      battlerite)
-      
-      var <- as.name(battlerite)
-      
-      br_filter <- filter(pre_agg_battlerites1, !!var == 1)
-      
-      battlerites1_df <- br_filter %>%
-        ungroup() %>%
-        select(!!var, Game_Won) %>%
-        group_by(!!var) %>%
-        summarize(Win_Rate = round(mean(Game_Won)*100, 2))
-      
-      Battlerites <- c(Battlerites, names(battlerites1_df)[1])
-      Win_Rate <- c(Win_Rate, battlerites1_df$Win_Rate)
-      
-    }
-    
-    br_winrates <- data.frame(Battlerites, Win_Rate, stringsAsFactors = TRUE)
-    br_winrates <- br_winrates %>%
-      mutate(Battlerites = fct_reorder(Battlerites, Win_Rate))
-    
-  })
-  
-  
-  
-  #Pre filter Battlerite win rate initial bar plot
-  battlerites_pre_agg <- reactive({
-    
-    req(input$champion != 'None')
-    req(!is.null(input$SelectBattlerite1))
-    
-    if (!is.null(input$SelectBattlerite4)) {
-      
-      if(input$SelectBattlerite4 != 'None') {
-        
-        Battlerites = c()
-        Win_Rate = c()
-        
-        for (battlerite in c(names(adjusted_champ_df4())[76:length(names(adjusted_champ_df4()))])) {
-          
-          pre_agg_battlerites1 <- pre_agg(adjusted_champ_df4(),
-                                          input$measure,
-                                          battlerite)
-          
-          var <- as.name(battlerite)
-          
-          br_filter <- filter(pre_agg_battlerites1, !!var == 1)
-          
-          battlerites1_df <- br_filter %>%
-            ungroup() %>%
-            select(!!var, Game_Won) %>%
-            group_by(!!var) %>%
-            summarize(Win_Rate = round(mean(Game_Won)*100, 2))
-          
-          Battlerites <- c(Battlerites, names(battlerites1_df)[1])
-          Win_Rate <- c(Win_Rate, battlerites1_df$Win_Rate)
-          
-        }
-        
-        br_winrates <- data.frame(Battlerites, Win_Rate, stringsAsFactors = TRUE)
-        br_winrates <- br_winrates %>%
-          mutate(Battlerites = fct_reorder(Battlerites, Win_Rate))
-        
-        
-        
-      }} else if (!is.null(input$SelectBattlerite3)) {
-        
-        if (input$SelectBattlerite3 != 'None') {
-          
-          Battlerites = c()
-          Win_Rate = c()
-          
-          for (battlerite in c(names(adjusted_champ_df3())[76:length(names(adjusted_champ_df3()))])) {
-            
-            pre_agg_battlerites1 <- pre_agg(adjusted_champ_df3(),
-                                            input$measure,
-                                            battlerite)
-            
-            var <- as.name(battlerite)
-            
-            br_filter <- filter(pre_agg_battlerites1, !!var == 1)
-            
-            battlerites1_df <- br_filter %>%
-              ungroup() %>%
-              select(!!var, Game_Won) %>%
-              group_by(!!var) %>%
-              summarize(Win_Rate = round(mean(Game_Won)*100, 2))
-            
-            Battlerites <- c(Battlerites, names(battlerites1_df)[1])
-            Win_Rate <- c(Win_Rate, battlerites1_df$Win_Rate)
-            
-          }
-          
-          br_winrates <- data.frame(Battlerites, Win_Rate, stringsAsFactors = TRUE)
-          br_winrates <- br_winrates %>%
-            mutate(Battlerites = fct_reorder(Battlerites, Win_Rate))
-          
-          
-          
-        }} else if (!is.null(input$SelectBattlerite2)) {
-          
-          if(input$SelectBattlerite2 != 'None') {
-            
-            Battlerites = c()
-            Win_Rate = c()
-            
-            for (battlerite in c(names(adjusted_champ_df2())[76:length(names(adjusted_champ_df2()))])) {
-              
-              pre_agg_battlerites1 <- pre_agg(adjusted_champ_df2(),
-                                              input$measure,
-                                              battlerite)
-              
-              var <- as.name(battlerite)
-              
-              br_filter <- filter(pre_agg_battlerites1, !!var == 1)
-              
-              battlerites1_df <- br_filter %>%
-                ungroup() %>%
-                select(!!var, Game_Won) %>%
-                group_by(!!var) %>%
-                summarize(Win_Rate = round(mean(Game_Won)*100, 2))
-              
-              Battlerites <- c(Battlerites, names(battlerites1_df)[1])
-              Win_Rate <- c(Win_Rate, battlerites1_df$Win_Rate)
-              
-            }
-            
-            br_winrates <- data.frame(Battlerites, Win_Rate, stringsAsFactors = TRUE)
-            br_winrates <- br_winrates %>%
-              mutate(Battlerites = fct_reorder(Battlerites, Win_Rate))
-            
-            
-            
-          }} else if (!is.null(input$SelectBattlerite1)) {
-            
-            if(input$SelectBattlerite1 != 'None') {
-              
-              Battlerites = c()
-              Win_Rate = c()
-              
-              for (battlerite in c(names(adjusted_champ_df1())[76:length(names(adjusted_champ_df1()))])) {
-                
-                pre_agg_battlerites1 <- pre_agg(adjusted_champ_df1(),
-                                                input$measure,
-                                                battlerite)
-                
-                var <- as.name(battlerite)
-                
-                br_filter <- filter(pre_agg_battlerites1, !!var == 1)
-                
-                battlerites1_df <- br_filter %>%
-                  ungroup() %>%
-                  select(!!var, Game_Won) %>%
-                  group_by(!!var) %>%
-                  summarize(Win_Rate = round(mean(Game_Won)*100, 2))
-                
-                Battlerites <- c(Battlerites, names(battlerites1_df)[1])
-                Win_Rate <- c(Win_Rate, battlerites1_df$Win_Rate)
-                
-              }
-              
-              br_winrates <- data.frame(Battlerites, Win_Rate, stringsAsFactors = TRUE)
-              br_winrates <- br_winrates %>%
-                mutate(Battlerites = fct_reorder(Battlerites, Win_Rate))
-              
-              
-              
-            } else {
-              
-              Battlerites = c()
-              Win_Rate = c()
-              
-              for (battlerite in c(names(champ_df())[76:length(names(champ_df()))])) {
-                
-                pre_agg_battlerites1 <- pre_agg(champ_df(),
-                                                input$measure,
-                                                battlerite)
-                
-                var <- as.name(battlerite)
-                
-                br_filter <- filter(pre_agg_battlerites1, !!var == 1)
-                
-                battlerites1_df <- br_filter %>%
-                  ungroup() %>%
-                  select(!!var, Game_Won) %>%
-                  group_by(!!var) %>%
-                  summarize(Win_Rate = round(mean(Game_Won)*100, 2))
-                
-                Battlerites <- c(Battlerites, names(battlerites1_df)[1])
-                Win_Rate <- c(Win_Rate, battlerites1_df$Win_Rate)
-                
-              }
-              
-              br_winrates <- data.frame(Battlerites, Win_Rate, stringsAsFactors = TRUE)
-              br_winrates <- br_winrates %>%
-                mutate(Battlerites = fct_reorder(Battlerites, Win_Rate))
-              
-            }}
-    test <- 1
-    br_winrates
-    
+    create_battlerites_agg(input$SelectBattlerite4b, adjusted_champ_df4(), input$measure)
     
   })
   
@@ -2100,37 +2368,37 @@ server <- function(input, output) {
     req(input$champion != 'None')
     req(!is.null(input$SelectBattlerite1))
     
-    if (input$SelectBattlerite1 == 'None') {
-      
+    if (input$SelectBattlerite1b == 'None') {
+
       p <- create_barplot(battlerites_agg1(), 'Battlerites')
       
     }  
     
-    if (input$SelectBattlerite1 != 'None') {
-      
+    if (input$SelectBattlerite1b != 'None') {
+
       p <- create_barplot(battlerites_agg2(), 'Battlerites')
       
     } 
     
-    if(!is.null(input$SelectBattlerite2)){
+    if(!is.null(input$SelectBattlerite2b)){
       
-      if (input$SelectBattlerite2 != 'None') {
+      if (input$SelectBattlerite2b != 'None') {
         
         p <- create_barplot(battlerites_agg3(), 'Battlerites')
         
       } 
       
-      if(!is.null(input$SelectBattlerite3)) {
+      if(!is.null(input$SelectBattlerite3b)) {
         
-        if (input$SelectBattlerite3 != 'None') {
+        if (input$SelectBattlerite3b != 'None') {
           
           p <- create_barplot(battlerites_agg4(), 'Battlerites')
           
         } 
         
-        if(!is.null(input$SelectBattlerite4)) {
+        if(!is.null(input$SelectBattlerite4b)) {
           
-          if (input$SelectBattlerite4 != 'None') {
+          if (input$SelectBattlerite4b != 'None') {
             
             p <- create_barplot(battlerites_agg5(), 'Battlerites')
             
@@ -2146,42 +2414,42 @@ server <- function(input, output) {
     req(input$champion != 'None')
     req(!is.null(input$SelectBattlerite1))
     
-    if (input$SelectBattlerite1 == 'None') {
-    
-    info <- create_tooltip(input$hoverBattlerites, battlerites_agg1(), battlerites_agg1()$Battlerites, 40, -30)
-    
-    }
-    
-    if (input$SelectBattlerite1 != 'None') {
-    
-      info <- create_tooltip(input$hoverBattlerites, battlerites_agg2(), battlerites_agg2()$Battlerites, 40, -30)
-
-    }
-    
-    if(!is.null(input$SelectBattlerite2)){
+    if (input$SelectBattlerite1b == 'None') {
       
-      if (input$SelectBattlerite2 != 'None') {
-       
+      info <- create_tooltip(input$hoverBattlerites, battlerites_agg1(), battlerites_agg1()$Battlerites, 40, -30)
+      
+    }
+    
+    if (input$SelectBattlerite1b != 'None') {
+      
+      info <- create_tooltip(input$hoverBattlerites, battlerites_agg2(), battlerites_agg2()$Battlerites, 40, -30)
+      
+    }
+    
+    if(!is.null(input$SelectBattlerite2b)){
+      
+      if (input$SelectBattlerite2b != 'None') {
+        
         info <- create_tooltip(input$hoverBattlerites, battlerites_agg3(), battlerites_agg3()$Battlerites, 40, -30)
         
       }
+      
+      if(!is.null(input$SelectBattlerite3b)) {
         
-      if(!is.null(input$SelectBattlerite3)) {
-        
-        if (input$SelectBattlerite3 != 'None') {
+        if (input$SelectBattlerite3b != 'None') {
           
           info <- create_tooltip(input$hoverBattlerites, battlerites_agg4(), battlerites_agg4()$Battlerites, 40, -30)
           
         }
-      
-        if(!is.null(input$SelectBattlerite4)) {
+        
+        if(!is.null(input$SelectBattlerite4b)) {
           
-          if (input$SelectBattlerite4 != 'None') {
+          if (input$SelectBattlerite4b != 'None') {
             
             info <- create_tooltip(input$hoverBattlerites, battlerites_agg5(), battlerites_agg5()$Battlerites, 40, -30)
-             
+            
           }
-      
+          
         }}}
     
     if (!is.null(info$Win)) {
@@ -2197,19 +2465,7 @@ server <- function(input, output) {
   })
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
   
   }
 

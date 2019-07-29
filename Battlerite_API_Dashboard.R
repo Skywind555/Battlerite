@@ -10,21 +10,21 @@ library('fastDummies')
 library('readxl')
 library('leaflet')
 
-setwd('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Data/2019/July/10')
+setwd('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects')
 
 #Get crosswalk reference files
-br_crosswalk <- read_csv('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Reference Files/Battlerite_Crosswalk.csv')
-pose_crosswalk <- read_csv('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Reference Files/Pose_Crosswalk.csv')
-outfit_crosswalk <- read_csv('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Reference Files/Outfit_Crosswalk.csv')
-attachment_crosswalk <- read_csv('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Reference Files/Attachment_Crosswalk.csv')
-mount_crosswalk <- read_csv('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Reference Files/Mount_Crosswalk.csv')
-champion_crosswalk <- read_csv('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Reference Files/Champion_Crosswalk.csv')
-avatar_crosswalk <- read_csv('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Reference Files/Avatar_Crosswalk.csv')
+br_crosswalk <- read_csv('Reference Files/Battlerite_Crosswalk.csv')
+pose_crosswalk <- read_csv('Reference Files/Pose_Crosswalk.csv')
+outfit_crosswalk <- read_csv('Reference Files/Outfit_Crosswalk.csv')
+attachment_crosswalk <- read_csv('Reference Files/Attachment_Crosswalk.csv')
+mount_crosswalk <- read_csv('Reference Files/Mount_Crosswalk.csv')
+champion_crosswalk <- read_csv('Reference Files/Champion_Crosswalk.csv')
+avatar_crosswalk <- read_csv('Reference Files/Avatar_Crosswalk.csv')
 
 
 
-df <- read_csv('Jul-10-2019_1.csv')
-region_coordinates <- read_excel('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Reference Files/region.xlsx')
+df <- read_csv('Data/2019/July/10/Jul-10-2019_1.csv')
+region_coordinates <- read_excel('Reference Files/region.xlsx')
 #Remove the ally and enemy data other than comp/team roles
 df <- df[, c(1:73, 112, 113)]
 
@@ -66,19 +66,27 @@ df <- mutate(df, Ranking_Type = ifelse(Ranking_Type == 'NONE', 'UNRANKED', Ranki
 df$Ranking_Type <- factor(df$Ranking_Type)
 
 #Add bot player_type information. If outfit is a blank, is a bot (All default battlerites selected for all players
-#With blank outfits for all champions)
-df <- mutate(df, Player_Type = ifelse(is.na(Outfit), 'BOT', 'PLAYER'))
+#With blank outfits for all champions) Or mount is blank, is a bot
+df <- mutate(df, Player_Type = ifelse(is.na(Outfit) | is.na(Mount), 'BOT', 'PLAYER'))
 
-#Bots use default outfits except for mounts, fill in blanks with defaults
+#Bots use default outfits except for mounta, fill in blanks with defaults
+#Bots can also have no mount recorded, fill in blank with RAM
 df <- mutate(df, Outfit = ifelse(is.na(Outfit), 'DEFAULT OUTFIT', Outfit),
              Attachment = ifelse(is.na(Attachment), 'DEFAULT WEAPON', Attachment),
-             Pose = ifelse(is.na(Pose), 'DEFAULT POSE', Pose))
+             Pose = ifelse(is.na(Pose), 'DEFAULT POSE', Pose),
+             Mount = ifelse(is.na(Mount), 'RAM', Mount))
+
+
 
 #Convert > 200 ping to 200 ping
-df <- mutate(df, Ping = ifelse(Ping > 200, 200, Ping))
 df <- mutate(df, Ping = 10*round(Ping/10))
+df <- mutate(df, Ping = ifelse(is.na(Ping), -1, ifelse(Ping > 200, 1000, Ping)))
+df$Ping <- as.character(df$Ping)
+df <- mutate(df, Ping = ifelse(Ping == '-1', 'Unknown', ifelse(Ping == 1000, 'Timeout', Ping)))
+
 df$Ping <- factor(df$Ping, levels = c('0', '10', '20', '30', '40', '50', '60', '70', '80', '90', '100',
-                                      '110', '120', '130', '140', '150', '160', '170', '180', '190', '200'))
+                                      '110', '120', '130', '140', '150', '160', '170', '180', '190', '200',
+                                      'Timeout', 'Unknown'))
 
 #Round dates to days
 df <- mutate(df, Date = substr(Date, 1, 10))
@@ -107,14 +115,17 @@ ui <- navbarPage('Navbar',
                           ),
                           
                           fluidRow(
-                            column(width = 12,
+                            column(width = 4,
                                    radioButtons(inputId = 'measure',
                                                 label = 'Measure',
                                                 choices = c('Win Rate' = 'winrate',
                                                             'Win Rate(Adjusted)' = 'winrateadjusted',
                                                             'Pick Rate' = 'pickrate',
                                                             'Pick Rate(Adjusted)' = 'pickrateadjusted'))
-                            )
+                            ),
+                            
+                            column(width = 4,
+                                   uiOutput(outputId = 'ChampImage'))
                           ),
                           
                           fluidRow(
@@ -816,7 +827,9 @@ server <- function(input, output) {
       if (variable == 'Ping') {
         
         pal = colorRampPalette(c('green', 'yellow', 'red'))
-        Colors = setNames(pal(21), levels(agg_df$Ping))
+        Colors1 = setNames(pal(21), levels(agg_df$Ping)[1:21])
+        Colors2 = setNames(c('#6D756B', '#6D756B'), c('Timeout', 'Unknown'))
+        Colors = c(Colors1, Colors2)
         
         Colors_subset <- Colors[as.vector(agg_df$Ping)]
         
@@ -1054,6 +1067,32 @@ server <- function(input, output) {
                                                     filtered_PlayerType(),
                                                     filtered_Date()
   )})
+  
+  ####################
+  ###CHAMPION IMAGE###
+  ####################
+  
+  selected_champ <- reactive({
+    
+    req(input$champion != 'None')
+    
+    data <- filter(champion_crosswalk, Value == input$champion)
+    filename <- data$`Icon File Name`
+    imagelink <- paste0('https://github.com/Skywind555/Personal-Projects/blob/master/ImagesConverted/', 
+                        filename, '.png?raw=true')
+    
+
+    
+  })
+  
+  output$ChampImage <- renderUI({
+    
+    req(input$champion != 'None')
+
+    tags$img(src = selected_champ())
+    
+  })
+  
   
   ############
   ###REGION###
@@ -1537,10 +1576,13 @@ server <- function(input, output) {
                                       input$measure,
                                       'Avatar')})
   
-  Avatar_df <- reactive({common_agg(pre_agg_avatar(),
-                                    input$measure,
-                                    'Avatar',
-                                    TRUE)})
+  Avatar_df <- reactive({
+    
+            common_agg(pre_agg_avatar(),
+                       input$measure,
+                       'Avatar',
+                       TRUE)
+    })
   
   #Filter Avatar observe event
   observeEvent(
@@ -1573,13 +1615,20 @@ server <- function(input, output) {
   #Avatar hover label
   output$Avatar_tooltip <- renderUI({
     
+    req(!is.null(input$hoverAvatar))
+    
     info <- create_tooltip(input$hoverAvatar, Avatar_df(), Avatar_df()$Avatar, 40, -30)
+    selected_avatar <- info$Name
+    filename <- filter(avatar_crosswalk, Value == selected_avatar)$`Avatar File Name`
+    imagelink <- paste0('https://github.com/Skywind555/Personal-Projects/blob/master/ImagesConverted/', 
+                        filename, '.png?raw=true')
     
     if (!is.null(info$Win)) {
       
       wellPanel(
         style = info$style,
-        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+        p(HTML(paste0("<font size = '1'>", info$Win, "</font>"))),
+        tags$img(src = imagelink)
       )
       
     }

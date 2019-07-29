@@ -12,6 +12,17 @@ library('leaflet')
 
 setwd('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Data/2019/July/10')
 
+#Get crosswalk reference files
+br_crosswalk <- read_csv('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Reference Files/Battlerite_Crosswalk.csv')
+pose_crosswalk <- read_csv('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Reference Files/Pose_Crosswalk.csv')
+outfit_crosswalk <- read_csv('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Reference Files/Outfit_Crosswalk.csv')
+attachment_crosswalk <- read_csv('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Reference Files/Attachment_Crosswalk.csv')
+mount_crosswalk <- read_csv('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Reference Files/Mount_Crosswalk.csv')
+champion_crosswalk <- read_csv('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Reference Files/Champion_Crosswalk.csv')
+avatar_crosswalk <- read_csv('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Reference Files/Avatar_Crosswalk.csv')
+
+
+
 df <- read_csv('Jul-10-2019_1.csv')
 region_coordinates <- read_excel('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Reference Files/region.xlsx')
 #Remove the ally and enemy data other than comp/team roles
@@ -63,6 +74,17 @@ df <- mutate(df, Outfit = ifelse(is.na(Outfit), 'DEFAULT OUTFIT', Outfit),
              Attachment = ifelse(is.na(Attachment), 'DEFAULT WEAPON', Attachment),
              Pose = ifelse(is.na(Pose), 'DEFAULT POSE', Pose))
 
+#Convert > 200 ping to 200 ping
+df <- mutate(df, Ping = ifelse(Ping > 200, 200, Ping))
+df <- mutate(df, Ping = 10*round(Ping/10))
+df$Ping <- factor(df$Ping, levels = c('0', '10', '20', '30', '40', '50', '60', '70', '80', '90', '100',
+                                      '110', '120', '130', '140', '150', '160', '170', '180', '190', '200'))
+
+#Round dates to days
+df <- mutate(df, Date = substr(Date, 1, 10))
+
+
+df$Player_Type <- factor(df$Player_Type)
 
 
 ui <- navbarPage('Navbar',
@@ -736,13 +758,99 @@ server <- function(input, output) {
   create_barplot <- function(agg_df, variable) {
     
     var <- as.name(variable)
+    var2 <- var
     
-    bar <- ggplot(data = agg_df, aes(x = !!var, y = Win_Rate)) +
-      geom_bar(width = 1, stat = 'identity') +
-      coord_flip() +
-      ylab('Win Rate') +
-      xlab(variable)
+    if (variable %in% c('League', 'Server_Type', 'Player_Type', 'Map', 'Ranking_Type', 'Pose',
+                        'Mount', 'Outfit', 'Attachment', 'Ping')) {
     
+    if (variable == 'League') {
+      
+      Colors <- setNames(rev(c('#FFFF78', '#D59E26', '#5AF8FF', '#2C3F67', '#AC8A28', '#C0C0C0', '#A66232')),
+                         levels(agg_df$League))
+      Colors_subset <- Colors[as.vector(agg_df$League)]
+      
+    }
+    
+    if (variable == 'Server_Type') {
+      
+      Colors <- setNames(c("#E69F00", "#56B4E9", "#009E73"),
+                         levels(agg_df$Server_Type))
+      Colors_subset <- Colors[as.vector(agg_df$Server_Type)]
+      
+    }
+    
+    if (variable == 'Player_Type') {
+      
+      Colors <- setNames(c("#E69F00", "#56B4E9"),
+                         levels(agg_df$Player_Type))
+      Colors_subset <- Colors[as.vector(agg_df$Player_Type)]
+      
+    }
+    
+    if (variable == 'Map') {
+      
+      Colors <- setNames(c("#E69F00", "#56B4E9"),
+                         levels(agg_df$Type))
+      Colors_subset <- Colors[as.vector(agg_df$Type)]
+      var2 <- as.name('Type')
+      
+    }
+    
+    if (variable == 'Ranking_Type') {
+      
+      Colors <- setNames(c("#E69F00", "#56B4E9"),
+                         levels(agg_df$Ranking_Type))
+      Colors_subset <- Colors[as.vector(agg_df$Ranking_Type)]
+      
+    }
+      
+    if (variable %in% c('Pose', 'Outfit', 'Mount', 'Attachment')) {
+      
+      Colors <- setNames(c('#C1C194', '#4CB7E1', '#DA40EE', '#FA8C26'),
+                         levels(agg_df$Rarity))
+      Colors_subset <- Colors[as.vector(agg_df$Rarity)]
+      var2 <- as.name('Rarity')
+      
+    }
+      
+      if (variable == 'Ping') {
+        
+        pal = colorRampPalette(c('green', 'yellow', 'red'))
+        Colors = setNames(pal(21), levels(agg_df$Ping))
+        
+        Colors_subset <- Colors[as.vector(agg_df$Ping)]
+        
+        
+        
+      } 
+      
+      bar <- ggplot(data = agg_df, aes(x = !!var, y = Win_Rate, fill = !!var2)) +
+        geom_bar(width = 1, stat = 'identity') +
+        ylab('Win Rate') +
+        xlab(variable) +
+        scale_fill_manual(values = Colors_subset) +
+        theme(legend.position = 'none')
+      
+      
+    } else {
+      
+      if (variable %in% c('Date', 'Title', 'Avatar')) {
+        
+        Color <- "#E69F00"
+        bar <- ggplot(data = agg_df, aes(x = !!var, y = Win_Rate)) +
+          geom_bar(width = 1, stat = 'identity', fill = Color) +
+          ylab('Win Rate') +
+          xlab(variable)
+        
+      }
+      
+    }
+    
+    if (variable != 'Ping') {
+      
+      bar <- bar + coord_flip()
+      
+    }
     
     return(bar)
     
@@ -1148,6 +1256,100 @@ server <- function(input, output) {
   ###DATE###
   ##########
   
+  pre_agg_date <- reactive({pre_agg(filtered_data(),
+                                          input$measure,
+                                          'Date')})
+  
+  date_df <- reactive({common_agg(pre_agg_date(),
+                                        input$measure,
+                                        'Date',
+                                        FALSE)})
+  #Filter Date observe event
+  observeEvent(
+    eventExpr = input$filterDate,
+    handlerExpr = {
+      
+      OE_Filter_common(date_df(), filtered_Date, input$filterDate$y, 'Date')
+      
+    }
+  )
+  
+  #Unfilter Date event
+  observeEvent(
+    eventExpr = input$unfilterDate,
+    handlerExpr = {
+      
+      filtered_Date(0)
+      
+    }
+  )
+  
+  #Create barplot
+  
+  output$Date <- renderPlot({
+    
+    create_barplot(date_df(), 'Date')
+    
+  })
+  
+  #Date hover label
+  output$Date_tooltip <- renderUI({
+    
+    info <- create_tooltip(input$hoverDate, date_df(), date_df()$Date, 40, -30)
+    
+    if (!is.null(info$Win)) {
+      
+      wellPanel(
+        style = info$style,
+        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+      )
+      
+    }
+    
+  })
+  
+  ##########
+  ###PING###
+  ##########
+  
+  agg_ping <- reactive({
+    
+    if (input$measure == 'winrate') {
+    
+    data <- filtered_data() %>%
+      select(Game_ID, User_ID, Round_Won, Ping) %>%
+      group_by(Game_ID, User_ID, Ping) %>%
+      summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0)) %>%
+      ungroup() %>%
+      group_by(Ping) %>%
+      summarize(Win_Rate = mean(Game_Won))
+    
+    }
+    
+  })
+  
+  output$Ping <- renderPlot({
+
+    create_barplot(agg_ping(), 'Ping')
+    
+  })
+  
+  output$Ping_tooltip <- renderUI({
+    
+      info <- create_tooltip(input$hoverPing, agg_ping(), agg_ping()$Ping, -25, 210)
+      
+      if (!is.null(info$Win)) {
+        
+        wellPanel(
+          style = info$style,
+          p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+        )
+        
+      }
+      
+    
+  })
+  
   
   ################
   ###SERVERTYPE###
@@ -1214,10 +1416,17 @@ server <- function(input, output) {
                                    input$measure,
                                    'Map')})
   
-  Map_df <- reactive({common_agg(pre_agg_map(),
-                                 input$measure,
-                                 'Map',
-                                 TRUE)})
+  Map_df <- reactive({
+    
+    data <- common_agg(pre_agg_map(),
+                       input$measure,
+                       'Map',
+                       TRUE) %>%
+      mutate(Type = ifelse(str_sub(Map, -3, -1) == 'DAY', 'DAY', 'NIGHT'))
+    data$Type <- factor(data$Type)
+    data
+
+    })
   
   #Filter ServerType observe event
   observeEvent(
@@ -1444,10 +1653,19 @@ server <- function(input, output) {
                                       input$measure,
                                       'Outfit')})
   
-  Outfit_df <- reactive({common_agg(pre_agg_outfit(),
-                                    input$measure,
-                                    'Outfit',
-                                    TRUE)})
+  Outfit_df <- reactive({
+    
+    data <- common_agg(pre_agg_outfit(),
+                       input$measure,
+                       'Outfit',
+                       TRUE)
+    
+    outfit_crosswalk$Value <- factor(outfit_crosswalk$Value, levels = levels(data$Outfit))
+    data <- inner_join(x = data, y = outfit_crosswalk, by = c('Outfit' = 'Value'))[-3]
+    data$Rarity <- factor(data$Rarity, levels = c('Common', 'Rare', 'Epic', 'Legendary'))
+    data <- data[!duplicated(data$Outfit),]
+    
+    })
   
   #Filter Outfit observe event
   observeEvent(
@@ -1502,10 +1720,19 @@ server <- function(input, output) {
                                           input$measure,
                                           'Attachment')})
   
-  Attachment_df <- reactive({common_agg(pre_agg_attachment(),
-                                        input$measure,
-                                        'Attachment',
-                                        TRUE)})
+  Attachment_df <- reactive({
+    
+    data <- common_agg(pre_agg_attachment(),
+                       input$measure,
+                       'Attachment',
+                       TRUE)
+    
+    attachment_crosswalk$Value <- factor(attachment_crosswalk$Value, levels = levels(data$Attachment))
+    data <- inner_join(x = data, y = attachment_crosswalk, by = c('Attachment' = 'Value'))[-3]
+    data$Rarity <- factor(data$Rarity, levels = c('Common', 'Rare', 'Epic', 'Legendary'))
+    data <- data[!duplicated(data$Attachment),]
+    
+    })
   
   #Filter Attachment observe event
   observeEvent(
@@ -1559,10 +1786,18 @@ server <- function(input, output) {
                                      input$measure,
                                      'Mount')})
   
-  Mount_df <- reactive({common_agg(pre_agg_mount(),
-                                   input$measure,
-                                   'Mount',
-                                   TRUE)})
+  Mount_df <- reactive({
+    data <- common_agg(pre_agg_mount(),
+                       input$measure,
+                       'Mount',
+                       TRUE)
+    
+    mount_crosswalk$Value <- factor(mount_crosswalk$Value, levels = levels(data$Mount))
+    data <- inner_join(x = data, y = mount_crosswalk, by = c('Mount' = 'Value'))[-3]
+    data$Rarity <- factor(data$Rarity, levels = c('Common', 'Rare', 'Epic', 'Legendary'))
+    data <- data[!duplicated(data$Mount),]
+    
+  })
   
   #Filter Mount observe event
   observeEvent(
@@ -1618,10 +1853,19 @@ server <- function(input, output) {
                                     input$measure,
                                     'Pose')})
   
-  Pose_df <- reactive({common_agg(pre_agg_pose(),
-                                  input$measure,
-                                  'Pose',
-                                  TRUE)})
+  Pose_df <- reactive({
+    
+    data <- common_agg(pre_agg_pose(),
+                       input$measure,
+                       'Pose',
+                       TRUE)
+
+    pose_crosswalk$Value <- factor(pose_crosswalk$Value, levels = levels(data$Pose))
+    data <- inner_join(x = data, y = pose_crosswalk, by = c('Pose' = 'Value'))[-3]
+    data$Rarity <- factor(data$Rarity, levels = c('Common', 'Rare', 'Epic', 'Legendary'))
+    data <- data[!duplicated(data$Pose),]
+    
+    })
   
   #Filter Pose observe event
   observeEvent(
@@ -1673,6 +1917,8 @@ server <- function(input, output) {
   
   stats_pre_agg <- reactive({
     
+    if (input$measure == 'winrate') {
+    
     data <- filtered_data() %>%
       select(Game_ID, User_ID, Round_Won, Kills, Deaths, Assists, Damage, Damage_Received, Protection, 
              Protection_Received, Control, Control_Received, Energy_Used, Energy_Gained, Abilities_Used,
@@ -1702,6 +1948,8 @@ server <- function(input, output) {
                 Energy_Shards = mean(Energy_Shards),
                 Time_Alive = mean(Time_Alive),
                 Queue_Time = mean(Queue_Time))
+    
+    }
     
   })
   
@@ -1788,10 +2036,13 @@ server <- function(input, output) {
   
   ally_comp_pre_agg <- reactive({
     
+    if (input$measure == 'winrate') {
+    
     data <- filtered_data() %>%
       select(Game_ID, User_ID, Round_Won, Team_Comp, Server_Type, Team_Roles) %>%
       group_by(Game_ID, User_ID, Team_Comp, Server_Type, Team_Roles) %>%
       summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
+    }
     
   })
   
@@ -1808,10 +2059,14 @@ server <- function(input, output) {
   
   enemy_comp_pre_agg <- reactive({
     
+    if (input$measure == 'winrate') {
+    
     data <- filtered_data() %>%
       select(Game_ID, User_ID, Round_Won, Enemy_Comp, Server_Type, Enemy_Roles) %>%
       group_by(Game_ID, User_ID, Enemy_Comp, Server_Type, Enemy_Roles) %>%
       summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
+    
+    }
     
   })
   
@@ -2306,8 +2561,15 @@ server <- function(input, output) {
     br_winrates <- data.frame(Battlerites, Win_Rate, stringsAsFactors = TRUE)
     br_winrates <- br_winrates %>%
       mutate(Battlerites = fct_reorder(Battlerites, Win_Rate))
+    br_crosswalk$Value <- factor(br_crosswalk$Value, levels = levels(br_winrates$Battlerites))
     
-    return(br_winrates)
+    brtypes <- inner_join(x = br_winrates, y = br_crosswalk, by = c('Battlerites' = 'Value'))[-3]
+    brtypes$`Battlerite Type` <- factor(brtypes$`Battlerite Type`, levels = c('Control', 'Defense',
+                                                                              'Mobility', 'Offense',
+                                                                              'Support', 'Utility', 'Mixed'))
+    brtypes
+
+    return(brtypes)
     
   }
   
@@ -2362,21 +2624,42 @@ server <- function(input, output) {
     
   })
   
+  create_battlerites_barplot <- function(agg_df) {
+    
+    Colors <- setNames(c('#FF4FCE', '#A8FF47', '#FFB800', '#FF2A1C', '#00FFE9', '#0095FF', '#BBFFFC'),
+                       levels(agg_df$`Battlerite Type`))
+    
+    Colors_subset <- Colors[as.vector(agg_df$`Battlerite Type`)]
+    
+    bar <- ggplot(data = agg_df, aes(x = Battlerites, y = Win_Rate, fill = `Battlerite Type`)) +
+      geom_bar(width = 1, stat = 'identity') +
+      coord_flip() +
+      scale_fill_manual(values = Colors_subset) +
+      ylab('Win Rate') +
+      xlab('Battlerites') +
+      theme(legend.position = 'none')
+    
+    return(bar)
+    
+  }
+    
+    
+  
   
   output$Battlerites <- renderPlot({
     
     req(input$champion != 'None')
     req(!is.null(input$SelectBattlerite1))
-    
+
     if (input$SelectBattlerite1b == 'None') {
 
-      p <- create_barplot(battlerites_agg1(), 'Battlerites')
+      p <- create_battlerites_barplot(battlerites_agg1())
       
     }  
     
     if (input$SelectBattlerite1b != 'None') {
 
-      p <- create_barplot(battlerites_agg2(), 'Battlerites')
+      p <- create_battlerites_barplot(battlerites_agg2())
       
     } 
     
@@ -2384,7 +2667,7 @@ server <- function(input, output) {
       
       if (input$SelectBattlerite2b != 'None') {
         
-        p <- create_barplot(battlerites_agg3(), 'Battlerites')
+        p <- create_battlerites_barplot(battlerites_agg3())
         
       } 
       
@@ -2392,7 +2675,7 @@ server <- function(input, output) {
         
         if (input$SelectBattlerite3b != 'None') {
           
-          p <- create_barplot(battlerites_agg4(), 'Battlerites')
+          p <- create_battlerites_barplot(battlerites_agg4())
           
         } 
         
@@ -2400,7 +2683,7 @@ server <- function(input, output) {
           
           if (input$SelectBattlerite4b != 'None') {
             
-            p <- create_barplot(battlerites_agg5(), 'Battlerites')
+            p <- create_battlerites_barplot(battlerites_agg5())
             
           }}}}
     

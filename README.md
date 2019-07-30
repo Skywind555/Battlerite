@@ -2,8 +2,14 @@ Note: The _V2 files are basically a slightly more complex script that includes i
 
 Otherwise, the data in the Data folder represents data pulled using the Get_Data script.
 
+Images files taken from https://github.com/StunlockStudios/battlerite-assets/tree/master/mappings/assets
+
+The Image_Conversion script converts Image files from the Image folder to png and resizes them to 130x130 pixels saved in the ImagesConverted folder.
+
 Use the following to view the .ipynb files for better formatting and faster rendering
 
 https://nbviewer.jupyter.org/github/Skywind555/Personal-Projects/blob/master/Get_Data.ipynb
 
 https://nbviewer.jupyter.org/github/Skywind555/Personal-Projects/blob/master/Get_Reference_Files.ipynb
+
+https://nbviewer.jupyter.org/github/Skywind555/Personal-Projects/blob/master/Image%20Conversion.ipynb

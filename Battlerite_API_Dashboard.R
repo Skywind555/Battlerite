@@ -82,11 +82,11 @@ df <- mutate(df, Outfit = ifelse(is.na(Outfit), 'DEFAULT OUTFIT', Outfit),
 df <- mutate(df, Ping = 10*round(Ping/10))
 df <- mutate(df, Ping = ifelse(is.na(Ping), -1, ifelse(Ping > 200, 1000, Ping)))
 df$Ping <- as.character(df$Ping)
-df <- mutate(df, Ping = ifelse(Ping == '-1', 'Unknown', ifelse(Ping == 1000, 'Timeout', Ping)))
+df <- mutate(df, Ping = ifelse(Ping == '-1', 'Unknown', ifelse(Ping == 1000, 'Time out', Ping)))
 
 df$Ping <- factor(df$Ping, levels = c('0', '10', '20', '30', '40', '50', '60', '70', '80', '90', '100',
                                       '110', '120', '130', '140', '150', '160', '170', '180', '190', '200',
-                                      'Timeout', 'Unknown'))
+                                      'Time out', 'Unknown'))
 
 #Round dates to days
 df <- mutate(df, Date = substr(Date, 1, 10))
@@ -248,11 +248,13 @@ ui <- navbarPage('Navbar',
                
                           fluidRow(
                             column(width = 3,
-                                   div(DT::dataTableOutput('StatsWin'), style = "font-size:75%")
+                                   htmlOutput('StatsWinLabel'),
+                                   div(DT::dataTableOutput('StatsWin'), style = "font-size:70%")
                             ),
                             
                             column(width = 3,
-                                   div(DT::dataTableOutput('StatsLose'), style = "font-size:75%")
+                                   htmlOutput('StatsLoseLabel'),
+                                   div(DT::dataTableOutput('StatsLose'), style = "font-size:70%")
                             ),
                             
                             column(width = 6,
@@ -260,19 +262,19 @@ ui <- navbarPage('Navbar',
                                    fluidRow(
                                      column(width = 3,
                                             htmlOutput('BestCompsLabel'),
-                                            div(tableOutput('BestComps'), style = "font-size:75%")),
+                                            div(tableOutput('BestComps'), style = "font-size:90%")),
                                      column(width = 3, offset = 3,
                                             htmlOutput('WorstCompsLabel'),
-                                            div(tableOutput('WorstComps'), style = "font-size:75%"))
+                                            div(tableOutput('WorstComps'), style = "font-size:90%"))
                                    ),
                                    
                                    fluidRow(
                                      column(width = 3,
                                             htmlOutput('BestMatchupsLabel'),
-                                            div(tableOutput('BestMatchups'), style = "font-size:75%")),
+                                            div(tableOutput('BestMatchups'), style = "font-size:90%")),
                                      column(width = 3, offset = 3,
                                             htmlOutput('WorstMatchupsLabel'),
-                                            div(tableOutput('WorstMatchups'), style = "font-size:75%"))
+                                            div(tableOutput('WorstMatchups'), style = "font-size:90%"))
                                    )
                                    
                           
@@ -357,8 +359,7 @@ server <- function(input, output) {
   #Filter data on champion select first
   
   
-  create_filtered_data <- function(champ_df, input_champion, input_total_time_played_min, input_total_time_played_max, 
-                                   input_champ_played_min, input_champ_played_max,
+  create_filtered_data <- function(champ_df, input_champion,
                                    filtered_region, filtered_league, filtered_servertype,
                                    filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
                                    filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
@@ -367,11 +368,7 @@ server <- function(input, output) {
     #Only include if have selected a champion
     req(input_champion != 'None')
     
-    #Filter total time played
-    data <- filter(champ_df, between(Total_Time_Played, input_total_time_played_min, input_total_time_played_max))
-    
-    #Filter champ time played
-    data <- filter(data, between(Champion_Time_Played, input_champ_played_min, input_champ_played_max))
+    data <- champ_df
     
     #Filter on region
     if (filtered_region != 0) {
@@ -476,6 +473,21 @@ server <- function(input, output) {
             }
             
           }}}}
+    
+    return(data)
+    
+  }
+  
+  create_filtered_data1b <- function(Filtered_data, input_total_time_played_min, input_total_time_played_max, 
+                                     input_champ_played_min, input_champ_played_max) {
+    
+    data <- Filtered_data
+    
+    #Filter total time played
+    data <- filter(data, between(Total_Time_Played, input_total_time_played_min, input_total_time_played_max))
+    
+    #Filter champ time played
+    data <- filter(data, between(Champion_Time_Played, input_champ_played_min, input_champ_played_max))
     
     return(data)
     
@@ -740,7 +752,8 @@ server <- function(input, output) {
   
   create_region_table <- function(data, row_name) {
     
-    dat <- datatable(data, selection = list(mode = 'single', target = 'cell'),
+    dat <- datatable(data, selection = list(mode = 'single', target = 'cell'), options = list(searching = FALSE,
+                                                                                              paging = FALSE),
                      callback = JS(gsub("\n", "", paste0("table.on('click.dt', 'td', function() {
                                                          var row_=table.cell(this).index().row;
                                                          var col=table.cell(this).index().column;
@@ -993,13 +1006,13 @@ server <- function(input, output) {
   output$Interactive_Slider1 <- renderUI({
     
     req(input$champion != 'None')
-    
+  
+        
     sliderInput(inputId = 'total_played',
                 label = 'Total Time Played (hours):',
                 min = 0,
-                max = max(champ_df()$Total_Time_Played, na.rm = TRUE),
-                value = c(0, max(champ_df()$Total_Time_Played, na.rm = TRUE)))
-    
+                max = max(filtered_data()$Total_Time_Played, na.rm = TRUE),
+                value = c(min(filtered_data()$Total_Time_Played, na.rm = TRUE), max(filtered_data()$Total_Time_Played, na.rm = TRUE)))
     
   })
   
@@ -1010,8 +1023,8 @@ server <- function(input, output) {
     sliderInput(inputId = 'champ_played',
                 label = 'Total Time Champion Played (hours):',
                 min = 0,
-                max = max(champ_df()$`Champion_Time_Played`, na.rm = TRUE),
-                value = c(0, max(champ_df()$`Champion_Time_Played`, na.rm = TRUE)))
+                max = max(filtered_data()$`Champion_Time_Played`, na.rm = TRUE),
+                value = c(min(filtered_data()$`Champion_Time_Played`, na.rm = TRUE), max(filtered_data()$`Champion_Time_Played`, na.rm = TRUE)))
     
     
   })
@@ -1020,10 +1033,6 @@ server <- function(input, output) {
   #Filter starting data frame with any filters applied
   filtered_data <- reactive({create_filtered_data(champ_df(),
                                                   input$champion,
-                                                  input$total_played[1],
-                                                  input$total_played[2],
-                                                  input$champ_played[1],
-                                                  input$champ_played[2],
                                                   filtered_Region(),
                                                   filtered_League(),
                                                   filtered_Servertype(),
@@ -1043,6 +1052,12 @@ server <- function(input, output) {
                                                   input$SelectBattlerite3b,
                                                   input$SelectBattlerite4b
   )})
+  
+  filtered_datab <- reactive({create_filtered_data1b(filtered_data(),
+                                                     input$total_played[1],
+                                                     input$total_played[2],
+                                                     input$champ_played[1],
+                                                     input$champ_played[2])})
   
   
   #Filtered data for battlerites
@@ -1100,7 +1115,7 @@ server <- function(input, output) {
   
   
   #Create aggregate region data
-  Region_df <- reactive({region_agg(filtered_data(),
+  Region_df <- reactive({region_agg(filtered_datab(),
                                     input$measure)})
   
   
@@ -1137,7 +1152,7 @@ server <- function(input, output) {
   ##################
   
   #Pre agg
-  pre_agg_regiongroup <- reactive({pre_agg(filtered_data(),
+  pre_agg_regiongroup <- reactive({pre_agg(filtered_datab(),
                                            input$measure,
                                            'Region Group')})
   
@@ -1182,7 +1197,7 @@ server <- function(input, output) {
   ###LEAGUE###
   ############
   
-  pre_agg_league <- reactive({pre_agg(filtered_data(),
+  pre_agg_league <- reactive({pre_agg(filtered_datab(),
                                       input$measure,
                                       'League')})
   
@@ -1237,7 +1252,7 @@ server <- function(input, output) {
   ###PLAYER TYPE###
   #################
   
-  pre_agg_playertype <- reactive({pre_agg(filtered_data(),
+  pre_agg_playertype <- reactive({pre_agg(filtered_datab(),
                                           input$measure,
                                           'Player_Type')})
   
@@ -1295,7 +1310,7 @@ server <- function(input, output) {
   ###DATE###
   ##########
   
-  pre_agg_date <- reactive({pre_agg(filtered_data(),
+  pre_agg_date <- reactive({pre_agg(filtered_datab(),
                                           input$measure,
                                           'Date')})
   
@@ -1355,7 +1370,7 @@ server <- function(input, output) {
     
     if (input$measure == 'winrate') {
     
-    data <- filtered_data() %>%
+    data <- filtered_datab() %>%
       select(Game_ID, User_ID, Round_Won, Ping) %>%
       group_by(Game_ID, User_ID, Ping) %>%
       summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0)) %>%
@@ -1369,7 +1384,8 @@ server <- function(input, output) {
   
   output$Ping <- renderPlot({
 
-    create_barplot(agg_ping(), 'Ping')
+    create_barplot(agg_ping(), 'Ping') +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
     
   })
   
@@ -1394,7 +1410,7 @@ server <- function(input, output) {
   ###SERVERTYPE###
   ################
   
-  pre_agg_servertype <- reactive({pre_agg(filtered_data(),
+  pre_agg_servertype <- reactive({pre_agg(filtered_datab(),
                                           input$measure,
                                           'Server_Type')})
   
@@ -1451,7 +1467,7 @@ server <- function(input, output) {
   ###MAP###
   #########
   
-  pre_agg_map <- reactive({pre_agg(filtered_data(),
+  pre_agg_map <- reactive({pre_agg(filtered_datab(),
                                    input$measure,
                                    'Map')})
   
@@ -1515,7 +1531,7 @@ server <- function(input, output) {
   ###RANKING TYPE###
   ##################
   
-  pre_agg_casual <- reactive({pre_agg(filtered_data(),
+  pre_agg_casual <- reactive({pre_agg(filtered_datab(),
                                       input$measure,
                                       'Ranking_Type')})
   
@@ -1572,7 +1588,7 @@ server <- function(input, output) {
   ###AVATAR###
   ############
   
-  pre_agg_avatar <- reactive({pre_agg(filtered_data(),
+  pre_agg_avatar <- reactive({pre_agg(filtered_datab(),
                                       input$measure,
                                       'Avatar')})
   
@@ -1639,7 +1655,7 @@ server <- function(input, output) {
   ###TITLE###
   ###########
   
-  pre_agg_title <- reactive({pre_agg(filtered_data(),
+  pre_agg_title <- reactive({pre_agg(filtered_datab(),
                                      input$measure,
                                      'Title')})
   
@@ -1698,7 +1714,7 @@ server <- function(input, output) {
   ###OUTFIT###
   ############
   
-  pre_agg_outfit <- reactive({pre_agg(filtered_data(),
+  pre_agg_outfit <- reactive({pre_agg(filtered_datab(),
                                       input$measure,
                                       'Outfit')})
   
@@ -1765,7 +1781,7 @@ server <- function(input, output) {
   ###ATTACHMENT###
   ################
   
-  pre_agg_attachment <- reactive({pre_agg(filtered_data(),
+  pre_agg_attachment <- reactive({pre_agg(filtered_datab(),
                                           input$measure,
                                           'Attachment')})
   
@@ -1831,7 +1847,7 @@ server <- function(input, output) {
   ###MOUNT###
   ###########
   
-  pre_agg_mount <- reactive({pre_agg(filtered_data(),
+  pre_agg_mount <- reactive({pre_agg(filtered_datab(),
                                      input$measure,
                                      'Mount')})
   
@@ -1898,7 +1914,7 @@ server <- function(input, output) {
   ###POSE###
   ##########
   
-  pre_agg_pose <- reactive({pre_agg(filtered_data(),
+  pre_agg_pose <- reactive({pre_agg(filtered_datab(),
                                     input$measure,
                                     'Pose')})
   
@@ -1968,35 +1984,35 @@ server <- function(input, output) {
     
     if (input$measure == 'winrate') {
     
-    data <- filtered_data() %>%
+    data <- filtered_datab() %>%
       select(Game_ID, User_ID, Round_Won, Kills, Deaths, Assists, Damage, Damage_Received, Protection, 
              Protection_Received, Control, Control_Received, Energy_Used, Energy_Gained, Abilities_Used,
              Num_Energy_Used, Orb_Kills, First_Orb, MVP, Round_Length, Total_Score, Highest_Score,
              Health_Shards, Energy_Shards, Time_Alive, Queue_Time) %>%
       group_by(Game_ID, User_ID) %>%
       summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0),
-                Kills = mean(Kills),
-                Deaths = mean(Deaths),
-                Damage = mean(Damage),
-                Damage_Received = mean(Damage_Received),
-                Protection = mean(Protection),
-                Protection_Received = mean(Protection_Received),
-                Control = mean(Control),
-                Control_Received = mean(Control_Received),
-                Energy_Used = mean(Energy_Used),
-                Energy_Gained = mean(Energy_Gained),
-                Abilities_Used = mean(Abilities_Used),
-                Num_Energy_Used = mean(Num_Energy_Used),
-                Orb_Kills = mean(Orb_Kills),
-                First_Orb = mean(First_Orb),
-                MVP = mean(MVP),
-                Round_Length = mean(Round_Length),
-                Total_Score = mean(Total_Score),
-                Highest_Score = mean(Highest_Score),
-                Health_Shards = mean(Health_Shards),
-                Energy_Shards = mean(Energy_Shards),
-                Time_Alive = mean(Time_Alive),
-                Queue_Time = mean(Queue_Time))
+                Kills = mean(Kills, na.rm = TRUE),
+                Deaths = mean(Deaths, na.rm = TRUE),
+                Damage = mean(Damage, na.rm = TRUE),
+                Damage_Received = mean(Damage_Received, na.rm = TRUE),
+                Protection = mean(Protection, na.rm = TRUE),
+                Protection_Received = mean(Protection_Received, na.rm = TRUE),
+                Control = mean(Control, na.rm = TRUE),
+                Control_Received = mean(Control_Received, na.rm = TRUE),
+                Energy_Used = mean(Energy_Used, na.rm = TRUE),
+                Energy_Gained = mean(Energy_Gained, na.rm = TRUE),
+                Abilities_Used = mean(Abilities_Used, na.rm = TRUE),
+                Num_Energy_Used = mean(Num_Energy_Used, na.rm = TRUE),
+                Orb_Kills = mean(Orb_Kills, na.rm = TRUE),
+                First_Orb = mean(First_Orb, na.rm = TRUE),
+                MVP = mean(MVP, na.rm = TRUE),
+                Round_Length = mean(Round_Length, na.rm = TRUE),
+                Total_Score = mean(Total_Score, na.rm = TRUE),
+                Highest_Score = mean(Highest_Score, na.rm = TRUE),
+                Health_Shards = mean(Health_Shards, na.rm = TRUE),
+                Energy_Shards = mean(Energy_Shards, na.rm = TRUE),
+                Time_Alive = mean(Time_Alive, na.rm = TRUE),
+                Queue_Time = mean(Queue_Time, na.rm = TRUE))
     
     }
     
@@ -2047,7 +2063,7 @@ server <- function(input, output) {
     
     #Remove Game_Won column
     data <- stats_agg_win()[,2:length(stats_agg_win())]
-    data <- gather(data, key = 'Measure(Wins)', value = 'Value')
+    data <- gather(data, key = 'Measure', value = 'Value')
     data$Value <- round(data$Value, 2)
     data
 
@@ -2059,23 +2075,37 @@ server <- function(input, output) {
     
     #Remove Game_Won column
     data <- stats_agg_lose()[,2:length(stats_agg_lose())]
-    data <- gather(data, key = 'Measure(Losses)', value = 'Value')
+    data <- gather(data, key = 'Measure', value = 'Value')
     data$Value <- round(data$Value, 2)
     data
 
     
   })
   
+  output$StatsWinLabel <- renderUI({
+    
+    HTML('<font size = "2"><b><u>Average Stats Per Round For Game Wins</font></b></u>')
+    
+  })
+  
+  output$StatsLoseLabel <- renderUI({
+    
+    HTML('<font size = "2"><b><u>Average Stats Per Round For Game Losses</font></b></u>')
+    
+  })
+  
   
   output$StatsWin <- DT::renderDataTable(expr = {
     
-    datatable(stats_win_df())
+    datatable(stats_win_df(), options = list(searching = FALSE,
+                                             paging = FALSE))
     
   })
   
   output$StatsLose <- DT::renderDataTable(expr = {
     
-    datatable(stats_lose_df())
+    datatable(stats_lose_df(), options = list(searching = FALSE,
+                                              paging = FALSE))
     
   })
   
@@ -2087,7 +2117,7 @@ server <- function(input, output) {
     
     if (input$measure == 'winrate') {
     
-    data <- filtered_data() %>%
+    data <- filtered_datab() %>%
       select(Game_ID, User_ID, Round_Won, Team_Comp, Server_Type, Team_Roles) %>%
       group_by(Game_ID, User_ID, Team_Comp, Server_Type, Team_Roles) %>%
       summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
@@ -2110,7 +2140,7 @@ server <- function(input, output) {
     
     if (input$measure == 'winrate') {
     
-    data <- filtered_data() %>%
+    data <- filtered_datab() %>%
       select(Game_ID, User_ID, Round_Won, Enemy_Comp, Server_Type, Enemy_Roles) %>%
       group_by(Game_ID, User_ID, Enemy_Comp, Server_Type, Enemy_Roles) %>%
       summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))

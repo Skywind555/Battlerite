@@ -1,5 +1,3 @@
-#Add overall win rate to top of board / pick rate option
-
 library('shiny')
 library('dplyr')
 library('readr')
@@ -141,7 +139,10 @@ ui <- navbarPage('Navbar',
                                                choices = c('None', levels(df$Champion)),
                                                selected = 'None')
                                    
-                            )
+                            ),
+                            column(width = 4,
+                                   actionButton(inputId = 'ResetAll',
+                                                label = 'Reset Everything'))
                           ),
                           
                           fluidRow(
@@ -155,7 +156,10 @@ ui <- navbarPage('Navbar',
                             ),
                             
                             column(width = 4,
-                                   uiOutput(outputId = 'ChampImage'))
+                                   uiOutput(outputId = 'ChampImage')),
+                            
+                            column(width = 4,
+                                   htmlOutput('OverallWinRate'))
                           ),
                           
                           fluidRow(
@@ -1048,6 +1052,35 @@ server <- function(input, output) {
   )})
   
  
+  ##################
+  ###RESET BUTTON###
+  ##################
+  
+  observeEvent(
+    eventExpr = input$ResetAll,
+    handlerExpr = {
+      
+      filtered_Region(0)
+      filtered_Battlerites$battlerites <- c()
+      filtered_League(0)
+      filtered_Servertype(0)
+      filtered_Map(0)
+      filtered_Casual(0)
+      filtered_Mount(0)
+      filtered_Title(0)
+      filtered_Avatar(0)
+      filtered_Outfit(0)
+      filtered_Attachment(0)
+      filtered_Pose(0)
+      filtered_RegionGroup(0)
+      filtered_PlayerType(0)
+      filtered_Date(0)
+      filtered_Championtime(0)
+      filtered_Totaltime(0)
+      
+      
+    }
+  )
   
   ####################
   ###CHAMPION IMAGE###
@@ -1074,6 +1107,32 @@ server <- function(input, output) {
     tags$img(src = selected_champ())
     
   })
+  
+  #####################
+  ###OVERALL WINRATE###
+  #####################
+  
+  #Overall winrate
+  overallwinrate <- reactive({
+    
+    data <- filtered_data() %>%
+      select(Game_ID, User_ID, Round_Won) %>%
+      group_by(Game_ID, User_ID) %>%
+      summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
+    
+    winrate <- round(mean(data$Game_Won)*100,2)
+    
+    
+  })
+  
+  output$OverallWinRate <- renderUI({
+    
+    HTML(paste0('<font size = "3"><b> Overall winrate: ',
+                overallwinrate(),
+                ' percent.</font></b>'))
+    
+  })
+  
   
   
   ############

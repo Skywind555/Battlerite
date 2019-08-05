@@ -129,6 +129,12 @@ df$Champion_Time_Played <- factor(df$Champion_Time_Played, levels = c('Under 10'
                                                                       '100-200', '200-500', 'Over 500', 'Unknown'))
 
 
+
+#Compute total number of 'Pick' phases. Total number of unique Game_ID's * 2
+Total_Picks_Overall <- length(unique(df$Game_ID))*2
+
+
+
 ui <- navbarPage('Navbar',
                  tabPanel('Champion',
                           fluidRow(
@@ -159,7 +165,7 @@ ui <- navbarPage('Navbar',
                                    uiOutput(outputId = 'ChampImage')),
                             
                             column(width = 4,
-                                   htmlOutput('OverallWinRate'))
+                                   htmlOutput('OverallMeasure'))
                           ),
                           
                           fluidRow(
@@ -612,18 +618,37 @@ server <- function(input, output) {
     print(paste0('Pre agg', variable))
     var <- as.name(variable)
     
-    if (measure == 'winrate') {
+    if (measure == 'winrate' |
+        measure == 'winrateadjusted') {
       
       data <- filtered_data %>%
         select(Game_ID, User_ID, Round_Won, !!var) %>%
         group_by(Game_ID, User_ID, !!var) %>%
         summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
       
-      data
+      
+      if (measure == 'winrateadjusted') {
+        
+        data <- data %>%
+          ungroup() %>%
+          group_by(User_ID, !!var) %>%
+          summarize(Game_Won = mean(Game_Won))
+        
+        
+      }
       
       return(data)
       
     }
+    
+    if (measure == 'pickrate' |
+        measure == 'pickrateadjusted') {
+      
+      
+      
+      
+    }
+
     
     
   }
@@ -631,32 +656,34 @@ server <- function(input, output) {
   region_agg <- function(filtered_data, measure) {
     req(!is.null(filtered_data))
     print('region_agg')
-    if (measure == 'winrate') {
+    if (measure == 'winrate' |
+        measure == 'winrateadjusted') {
       
       data <- filtered_data %>%
         select(Game_ID, User_ID, Round_Won, City, Longitude, Latitude, Region, `Region Group`) %>%
         group_by(Game_ID, User_ID, City, Longitude, Latitude, Region, `Region Group`) %>%
         summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0)) %>%
-        ungroup() %>%
+        ungroup()
+      
+      if (measure == 'winrateadjusted') {
+        
+        data <- data %>%
+          group_by(User_ID, City, Longitude, Latitude, Region, `Region Group`) %>%
+          summarize(Game_Won = mean(Game_Won)) %>%
+          ungroup()
+        
+      }
+      
+      data <- data %>%
         select(Region, `Region Group`, Longitude, Latitude, City, Game_Won) %>%
         group_by(Region, `Region Group`, Longitude, Latitude, City) %>%
         summarize(Win_Rate = round(mean(Game_Won)*100,2))
       
     }
     
-    return(data)
+
     
-  }
-  
-  region_table_agg <- function(region_agg) {
-    req(!is.null(region_agg))
-    print('region table agg')
-    data <- region_agg %>%
-      ungroup() %>%
-      select(`Region Group`, Win_Rate) %>%
-      group_by(`Region Group`) %>%
-      summarize(Win_Rate = round(mean(Win_Rate), 2)) %>%
-      arrange(desc(Win_Rate))
+    
     
     return(data)
     
@@ -667,7 +694,8 @@ server <- function(input, output) {
     print(paste0('agg', variable))
     var <- as.name(variable)
     
-    if (measure == 'winrate') {
+    if (measure == 'winrate' |
+        measure == 'winrateadjusted') {
       
       data <- pre_agg_data %>%
         ungroup() %>%
@@ -1113,23 +1141,56 @@ server <- function(input, output) {
   #####################
   
   #Overall winrate
-  overallwinrate <- reactive({
+  overallmeasure <- reactive({
     
     data <- filtered_data() %>%
       select(Game_ID, User_ID, Round_Won) %>%
       group_by(Game_ID, User_ID) %>%
       summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
     
-    winrate <- round(mean(data$Game_Won)*100,2)
+    if (input$measure == 'winrateadjusted') {
+      
+      data <- data %>%
+        ungroup() %>%
+        group_by(User_ID) %>%
+        summarize(Game_Won = mean(Game_Won))
+      
+    }
     
+    if (input$measure == 'pickrate') {
+      
+      champ_pick_size <- length(unique(data$Game_ID))
+      output <- round(champ_pick_size*100/Total_Picks_Overall, 2)
+      
+    }
+    
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+    
+    output <- round(mean(data$Game_Won)*100,2)
+    
+    }
+    
+    output
     
   })
   
-  output$OverallWinRate <- renderUI({
+  output$OverallMeasure <- renderUI({
     
-    HTML(paste0('<font size = "3"><b> Overall winrate: ',
-                overallwinrate(),
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+    
+    HTML(paste0('<font size = "3"><b> Overall win rate: ',
+                overallmeasure(),
                 ' percent.</font></b>'))
+      
+    } else {
+      
+      HTML(paste0('<font size = "3"><b> Overall pick rate: ',
+                  overallmeasure(),
+                  ' percent.</font></b>'))
+      
+    }
     
   })
   
@@ -1505,22 +1566,20 @@ server <- function(input, output) {
   ###PING###
   ##########
   
+  pre_agg_ping <- reactive({
+    
+    pre_agg(filtered_data(),
+            input$measure,
+            'Ping')
+    
+  })
+  
   agg_ping <- reactive({
     
-    if (input$measure == 'winrate') {
-      
-      test <- 1
-      
-    
-    data <- filtered_data() %>%
-      select(Game_ID, User_ID, Round_Won, Ping) %>%
-      group_by(Game_ID, User_ID, Ping) %>%
-      summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0)) %>%
-      ungroup() %>%
-      group_by(Ping) %>%
-      summarize(Win_Rate = round(mean(Game_Won)*100,2))
-    
-    }
+    common_agg(pre_agg_ping(),
+               input$measure,
+               'Ping',
+               FALSE)
     
   })
   
@@ -2124,7 +2183,8 @@ server <- function(input, output) {
   
   stats_pre_agg <- reactive({
     
-    if (input$measure == 'winrate') {
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
     print('stats pre agg')
     data <- filtered_data() %>%
       select(Game_ID, User_ID, Round_Won, Kills, Deaths, Assists, Damage, Damage_Received, Protection, 
@@ -2161,12 +2221,49 @@ server <- function(input, output) {
                 Survived = mean(Survived, na.rm = TRUE),
                 Queue_Time = mean(Queue_Time, na.rm = TRUE))
     
+    if (input$measure == 'winrateadjusted') {
+      
+      data <- data %>%
+      ungroup() %>%
+      group_by(User_ID) %>%
+      summarize(Game_Won = mean(Game_Won),
+                Kills = mean(Kills),
+                Deaths = mean(Deaths),
+                Damage = mean(Damage),
+                Damage_Received = mean(Damage_Received),
+                Protection = mean(Protection),
+                Protection_Received = mean(Protection_Received),
+                Control = mean(Control),
+                Control_Received = mean(Control_Received),
+                Energy_Used = mean(Energy_Used),
+                Energy_Gained = mean(Energy_Gained),
+                Abilities_Used = mean(Abilities_Used),
+                Num_Energy_Used = mean(Num_Energy_Used),
+                Orb_Kills = mean(Orb_Kills),
+                First_Orb = mean(First_Orb),
+                MVP = mean(MVP),
+                Round_Length = mean(Round_Length),
+                Total_Score = mean(Total_Score),
+                Highest_Score = mean(Highest_Score),
+                Health_Shards = mean(Health_Shards),
+                Energy_Shards = mean(Energy_Shards),
+                Survived = mean(Survived),
+                Queue_Time = mean(Queue_Time))
+      
     }
+    
+    }
+    
+    data
     
   })
   
   stats_agg <- reactive({
     print('stats agg')
+    
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+    
     data <- stats_pre_agg() %>%
       ungroup() %>%
       group_by(Game_Won) %>%
@@ -2192,6 +2289,7 @@ server <- function(input, output) {
                 Energy_Shards = mean(Energy_Shards),
                 Survived = mean(Survived),
                 Queue_Time = mean(Queue_Time))
+    }
 
   })
   
@@ -2263,38 +2361,91 @@ server <- function(input, output) {
   
   ally_comp_pre_agg <- reactive({
     
-    if (input$measure == 'winrate') {
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
     print('ally comp pre agg')
     data <- filtered_data() %>%
       select(Game_ID, User_ID, Round_Won, Team_Comp, Server_Type, Team_Roles) %>%
       group_by(Game_ID, User_ID, Team_Comp, Server_Type, Team_Roles) %>%
       summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
+    
+    if (input$measure == 'winrateadjusted') {
+      
+      data <- data %>%
+        ungroup() %>%
+        group_by(User_ID, Team_Comp, Server_Type, Team_Roles) %>%
+        summarize(Game_Won = mean(Game_Won))
+      
+      
     }
+    
+    }
+    
+    data
     
   })
   
   ally_comp_agg <- reactive({
     print('ally comp agg')
+    
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+    
     data <- ally_comp_pre_agg() %>%
       ungroup() %>%
       select(Game_Won, Team_Comp, Server_Type, Team_Roles) %>%
       group_by(Team_Comp, Team_Roles, Server_Type) %>%
-      summarize(Win_Rate = round(mean(Game_Won)*100, 2)) %>%
+      summarize(Win_Rate = round(mean(Game_Won)*100, 2),
+                Count = n()) %>%
       arrange(desc(Win_Rate))
+    
+    data2 <- data %>%
+      filter(Count >= 3)
+    
+    if (dim(data2)[1] < 10) {
+      
+      data2 <- data %>%
+        filter(Count >= 2)
+      
+      if(dim(data2)[1] < 10) {
+        
+        data2 <- data
+        
+      }
+      
+    }
+  
+    }
+    
+    test <- 1
+    
+    data2
     
   })
   
   enemy_comp_pre_agg <- reactive({
     req(!is.null(filtered_data()))
     print('enemy comp pre agg')
-    if (input$measure == 'winrate') {
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
     
     data <- filtered_data() %>%
       select(Game_ID, User_ID, Round_Won, Enemy_Comp, Server_Type, Enemy_Roles) %>%
       group_by(Game_ID, User_ID, Enemy_Comp, Server_Type, Enemy_Roles) %>%
       summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
     
+    if (input$measure == 'winrateadjusted') {
+      
+      data <- data %>%
+        ungroup() %>%
+        group_by(User_ID, Enemy_Comp, Server_Type, Enemy_Roles) %>%
+        summarize(Game_Won = mean(Game_Won))
+      
+      
     }
+    }
+    
+    data
     
   })
   
@@ -2302,12 +2453,39 @@ server <- function(input, output) {
   enemy_comp_agg <- reactive({
     req(!is.null(enemy_comp_pre_agg))
     print('enemy comp agg')
+    
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+    
     data <- enemy_comp_pre_agg() %>%
       ungroup() %>%
       select(Game_Won, Enemy_Comp, Server_Type, Enemy_Roles) %>%
       group_by(Enemy_Comp, Enemy_Roles, Server_Type) %>%
-      summarize(Win_Rate = round(mean(Game_Won)*100, 2)) %>%
+      summarize(Win_Rate = round(mean(Game_Won)*100, 2),
+                Count = n()) %>%
       arrange(desc(Win_Rate))
+    
+    data2 <- data %>%
+      filter(Count >= 3)
+    
+    if (dim(data2)[1] < 10) {
+      
+      data2 <- data %>%
+        filter(Count >= 2)
+      
+      if(dim(data2)[1] < 10) {
+        
+        data2 <- data
+        
+      }
+      
+    }
+    
+    
+    }
+    test <- 1
+    
+    data2
     
   })
   
@@ -2351,85 +2529,220 @@ server <- function(input, output) {
   
   pre_agg_allyroles <- reactive({
     print('ally role pre agg')
-    if (input$measure == 'winrate') {
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
       
       data <- filtered_data() %>%
         select(Game_ID, User_ID, Round_Won, Team_Roles, Enemy_Roles) %>%
         group_by(Game_ID, User_ID, Team_Roles, Enemy_Roles) %>%
         summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
+      
+      if (input$measure == 'winrateadjusted') {
+        
+        data <- data %>%
+          ungroup() %>%
+          group_by(User_ID, Team_Roles, Enemy_Roles) %>%
+          summarize(Game_Won = mean(Game_Won))
+
+      }
+      
     }
+    
+    data
     
     })
   
   Allyroles_df <- reactive({
     print('ally role agg')
+    
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
     data <- pre_agg_allyroles() %>%
       ungroup() %>%
       select(Team_Roles, Game_Won) %>%
       group_by(Team_Roles) %>%
-      summarize(Win_Rate = round(mean(Game_Won)*100,2)) %>%
+      summarize(Win_Rate = round(mean(Game_Won)*100,2),
+                Count = n()) %>%
       arrange(desc(Win_Rate))
-    data
+    
+    data2 <- data %>%
+      filter(Count >= 3)
+    
+    if (dim(data2)[1] < 2) {
+      
+      data2 <- data %>%
+        filter(Count >= 2)
+      
+      if(dim(data2)[1] < 2) {
+        
+        data2 <- data
+        
+      }
+      
+    }
+    
+    }
+    test <- 1
+    data2
     
   })
   
   Allyroles_best <- reactive({
     
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+    
     data <- pre_agg_allyroles() %>%
       ungroup() %>%
       select(Team_Roles, Enemy_Roles, Game_Won) %>%
       group_by(Team_Roles, Enemy_Roles) %>%
-      summarize(Win_Rate = round(mean(Game_Won)*100,2)) %>%
+      summarize(Win_Rate = round(mean(Game_Won)*100,2),
+                Count = n()) %>%
       arrange(desc(Win_Rate)) %>%
       filter(Team_Roles == head(Allyroles_df(), 1)$Team_Roles)
+    
+    data2 <- data %>%
+      filter(Count >= 3)
+    
+    if (dim(data2)[1] < 2) {
+      
+      data2 <- data %>%
+        filter(Count >= 2)
+      
+      if(dim(data2)[1] < 2) {
+        
+        data2 <- data
+        
+      }
+      
+    }
+    
+    }
+    
+    test <- 1
+    data2
     
   })
   
   Allyroles_worst <- reactive({
     
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+    
     data <- pre_agg_allyroles() %>%
       ungroup() %>%
       select(Team_Roles, Enemy_Roles, Game_Won) %>%
       group_by(Team_Roles, Enemy_Roles) %>%
-      summarize(Win_Rate = round(mean(Game_Won)*100,2)) %>%
+      summarize(Win_Rate = round(mean(Game_Won)*100,2),
+                Count = n()) %>%
       arrange(desc(Win_Rate)) %>%
       filter(Team_Roles == tail(Allyroles_df(), 1)$Team_Roles)
+    
+    data2 <- data %>%
+      filter(Count >= 3)
+    
+    if (dim(data2)[1] < 2) {
+      
+      data2 <- data %>%
+        filter(Count >= 2)
+      
+      if(dim(data2)[1] < 2) {
+        
+        data2 <- data
+        
+      }
+      
+    }
+    
+    
+    }
+    
+    test <- 1
+    
+    
+    data2
     
   })
   
   output$BestAllyRoles <- renderUI({
     
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+
     bestoverall <- head(Allyroles_best(), 1)$Team_Roles
+    bestoverall_win <- head(Allyroles_df(), 1)$Win_Rate
+    bestoverall_count <- head(Allyroles_df(), 1)$Count
     bestmatchup <- head(Allyroles_best(), 1)$Enemy_Roles
+    bestmatchup_win <- head(Allyroles_best(), 1)$Win_Rate
+    bestmatchup_count <- head(Allyroles_best(), 1)$Count
     worstmatchup <- tail(Allyroles_best(), 1)$Enemy_Roles
+    worstmatchup_win <- tail(Allyroles_best(), 1)$Win_Rate
+    worstmatchup_count <- tail(Allyroles_best(), 1)$Count
     
     HTML(paste0('<font size = "2"> The best overall roles for ',
                 input$champion,
                 ' is ',
                 bestoverall,
-                ' with the best matchup against ',
+                ' with a win rate of ',
+                bestoverall_win,
+                ' with ',
+                bestoverall_count,
+                ' observations. The best matchup is against ',
                 bestmatchup,
-                ' and the worst matchup against ',
+                ' with a win rate of ',
+                bestmatchup_win,
+                ' with ',
+                bestmatchup_count,
+                ' observations and the worst matchup against ',
                 worstmatchup,
-                '.</font></b></u>'))
+                ' with a win rate of ',
+                worstmatchup_win,
+                ' with ',
+                worstmatchup_count,
+                ' observations.</font></b></u>'))
+    }
     
   })
   
   output$WorstAllyRoles <- renderUI({
     
-    worstoverall <- head(Allyroles_worst(), 1)$Team_Roles
-    bestmatchup <- head(Allyroles_worst(), 1)$Enemy_Roles
-    worstmatchup <- tail(Allyroles_worst(), 1)$Enemy_Roles
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+      
+      
+      worstoverall <- head(Allyroles_worst(), 1)$Team_Roles
+      worstoverall_win <- tail(Allyroles_df(), 1)$Win_Rate
+      worstoverall_count <- tail(Allyroles_df(), 1)$Count
+      bestmatchup <- head(Allyroles_worst(), 1)$Enemy_Roles
+      bestmatchup_win <- head(Allyroles_worst(), 1)$Win_Rate
+      bestmatchup_count <- head(Allyroles_worst(), 1)$Count
+      worstmatchup <- tail(Allyroles_worst(), 1)$Enemy_Roles
+      worstmatchup_win <- tail(Allyroles_worst(), 1)$Win_Rate
+      worstmatchup_count <- tail(Allyroles_worst(), 1)$Count
     
-    HTML(paste0('<font size = "2"> The worst overall roles for ',
-                input$champion,
-                ' is ',
-                worstoverall,
-                ' with the best matchup against ',
-                bestmatchup,
-                ' and the worst matchup against ',
-                worstmatchup,
-                '.</font></b></u>'))
+      HTML(paste0('<font size = "2"> The worst overall roles for ',
+                  input$champion,
+                  ' is ',
+                  worstoverall,
+                  ' with a win rate of ',
+                  worstoverall_win,
+                  ' with ',
+                  worstoverall_count,
+                  ' observations. The best matchup is against ',
+                  bestmatchup,
+                  ' with a win rate of ',
+                  bestmatchup_win,
+                  ' with ',
+                  bestmatchup_count,
+                  ' observations and the worst matchup against ',
+                  worstmatchup,
+                  ' with a win rate of ',
+                  worstmatchup_win,
+                  ' with ',
+                  worstmatchup_count,
+                  ' observations.</font></b></u>'))
+    
+    }
     
   })
   
@@ -2437,10 +2750,6 @@ server <- function(input, output) {
   #################
   ###BATTLERITES###
   #################
-  
-
-
-
   
   
   create_battlerites_agg <- function(filtered_data,
@@ -2651,7 +2960,28 @@ server <- function(input, output) {
   #Battlerites hover label
   output$Battlerites_tooltip <- renderUI({
     
+    check <- TRUE
+    
+    if(!is.null(filtered_Battlerites$battlerites)) {
+      
+      if(length(filtered_Battlerites$battlerites) < 5) {
+    
     info <- create_tooltip(input$hoverBattlerites, battlerites_agg1(), battlerites_agg1()$Battlerites, 40, 0)
+    
+      } else {
+        
+        check <- FALSE
+        
+      }
+      
+      
+      } else {
+      
+        info <- create_tooltip(input$hoverBattlerites, battlerites_agg1(), battlerites_agg1()$Battlerites, 40, 0) 
+        
+      }
+    
+    if (check) {
     
     if (!is.null(info$Win)) {
       
@@ -2659,6 +2989,8 @@ server <- function(input, output) {
         style = info$style,
         p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
       )
+      
+    }
       
     }
     
@@ -2672,14 +3004,41 @@ server <- function(input, output) {
   
   Battlerites_df <- reactive({
     
-    data <- common_agg(pre_agg_battlerites(),
-                       input$measure,
-                       'Battlerites',
-                       FALSE) %>%
-      arrange(desc(Win_Rate))
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+      
+      data <- pre_agg_battlerites() %>%
+        ungroup() %>%
+        select(Battlerites, Game_Won) %>%
+        group_by(Battlerites) %>%
+        summarize(Win_Rate = mean(Game_Won),
+                  Count = n()) %>%
+        mutate(Win_Rate = round(Win_Rate*100,2)) %>%
+        arrange(desc(Win_Rate))
+      
+      data2 <- data %>%
+        filter(Count >= 3)
+      
+      if (dim(data2)[1] == 0) {
+        
+        data2 <- data %>%
+          filter(Count >= 2)
+        
+        if(dim(data2)[1] == 0) {
+          
+          data2 <- data
+          
+        }
+        
+      }
+      
+     
+      
+      data2
+    }
     
-    data
     
+
     
     
     })
@@ -2693,7 +3052,9 @@ server <- function(input, output) {
                 head(Battlerites_df(), 1)$Battlerites,
                 '</b> with a win rate of ',
                 head(Battlerites_df(), 1)$Win_Rate,
-                ' percent.</font>'))
+                ' percent and has ',
+                head(Battlerites_df(), 1)$Count,
+                ' observations.</font>'))
     
   })
   

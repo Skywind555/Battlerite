@@ -130,8 +130,11 @@ df$Champion_Time_Played <- factor(df$Champion_Time_Played, levels = c('Under 10'
 
 
 
-#Compute total number of 'Pick' phases. Total number of unique Game_ID's * 2
+#Compute total number of 'Pick' phases for pick rate. Total number of unique Game_ID's * 2
 Total_Picks_Overall <- length(unique(df$Game_ID))*2
+
+df$User_ID <- as.character(df$User_ID)
+
 
 
 
@@ -618,13 +621,10 @@ server <- function(input, output) {
     print(paste0('Pre agg', variable))
     var <- as.name(variable)
     
-    if (measure == 'winrate' |
-        measure == 'winrateadjusted') {
-      
-      data <- filtered_data %>%
-        select(Game_ID, User_ID, Round_Won, !!var) %>%
-        group_by(Game_ID, User_ID, !!var) %>%
-        summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
+    data <- filtered_data %>%
+      select(Game_ID, User_ID, Round_Won, !!var) %>%
+      group_by(Game_ID, User_ID, !!var) %>%
+      summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
       
       
       if (measure == 'winrateadjusted') {
@@ -634,24 +634,98 @@ server <- function(input, output) {
           group_by(User_ID, !!var) %>%
           summarize(Game_Won = mean(Game_Won))
         
+        data
+      }
+    
+    if (measure == 'pickrateadjusted') {
+      
+      data <- data %>%
+        ungroup() %>%
+        group_by(User_ID, !!var) %>%
+        summarize(Num_Picks = n())
+      
+      data <- inner_join(x = data, y = User_Games_Played(), by = c('User_ID' = 'User_ID'))
+      
+      categories <- unique(pull(data, variable))
+      num_unique_users <- length(unique(data$User_ID))
+      
+      Category = c()
+      Pick_Rate = c()
+      
+      for (category in categories) {
+      
+        data2 <- filter(data, !!var == category)
+        user_pick_rates <- c()
         
+        #Check if user has picked any other category and compute probability accordingly
+        for (userid in data2$User_ID) {
+          
+          user_filtered <- filter(data2, User_ID == userid)
+          user_pick_rate <- user_filtered$Num_Picks/user_filtered$User_Total_Games
+          user_pick_rates <- c(user_pick_rates, user_pick_rate)
+            
+            
+        }
+        
+        category_pick_rate <- sum(user_pick_rates)/num_unique_users
+        
+        Category <- c(Category, category)
+        Pick_Rate <- c(Pick_Rate, category_pick_rate)
+      }
+      
+      data <- data.frame(Category, Pick_Rate, stringsAsFactors = TRUE) %>%
+        mutate(Pick_Rate = round(Pick_Rate*100,2))
+      colnames(data)[colnames(data) == 'Category'] <- variable 
+      
       }
       
       return(data)
       
-    }
-    
-    if (measure == 'pickrate' |
-        measure == 'pickrateadjusted') {
-      
-      
-      
-      
-    }
 
+  }
+  
+  common_agg <- function(pre_agg_data, measure, variable, sort_descending) {
+   
+    req(!is.null(pre_agg_data))
+    print(paste0('agg', variable))
+    var <- as.name(variable)
     
+    if (measure != 'pickrateadjusted') {
+      
+    data <- pre_agg_data %>%
+      ungroup() %>%
+      select(!!var, Game_Won) %>%
+      group_by(!!var) %>%
+      summarize(Win_Rate = round(mean(Game_Won)*100, 2),
+                Pick_Rate = round(n()/Champion_Pick_Size()*100, 2))
+    
+    } else {
+      
+      data <- pre_agg_data
+      
+    }
+      
+      if (sort_descending) {
+        
+        if (measure == 'winrate' |
+            measure == 'winrateadjusted') {
+        
+        data <- mutate(data, !!var := fct_reorder(!!var, Win_Rate))
+        
+        } else {
+          
+          data <- mutate(data, !!var := fct_reorder(!!var, Pick_Rate))
+          
+        }
+      }
+    
+    
+    data
+    return(data)
     
   }
+  
+  
   
   region_agg <- function(filtered_data, measure) {
     req(!is.null(filtered_data))
@@ -689,29 +763,7 @@ server <- function(input, output) {
     
   }
   
-  common_agg <- function(pre_agg_data, measure, variable, sort_descending) {
-    req(!is.null(pre_agg_data))
-    print(paste0('agg', variable))
-    var <- as.name(variable)
-    
-    if (measure == 'winrate' |
-        measure == 'winrateadjusted') {
-      
-      data <- pre_agg_data %>%
-        ungroup() %>%
-        select(!!var, Game_Won) %>%
-        group_by(!!var) %>%
-        summarize(Win_Rate = mean(Game_Won)) %>%
-        mutate(Win_Rate = round(Win_Rate*100,2))
-      
-      if (sort_descending) {
-        data <- mutate(data, !!var := fct_reorder(!!var, Win_Rate))
-      }
-    }
-    
-    return(data)
-    
-  }
+
   
   
   ###Plots###
@@ -1009,6 +1061,25 @@ server <- function(input, output) {
   filtered_Championtime <- reactiveVal(0)
   filtered_Totaltime <- reactiveVal(0)
   
+  #Find total number of games played for each user-champion to compute pick rate adjusted
+  User_Games_Played <- reactive({
+    
+    data <- filtered_data() %>%
+      group_by(Game_ID, User_ID) %>%
+      summarize(count = n()) %>%
+      ungroup() %>%
+      select(-count) %>%
+      group_by(User_ID) %>%
+      summarize(User_Total_Games = n())
+    
+  })
+  
+  
+  
+  
+  
+  
+  
   #Filter on champion select first
   #Filter on initial champion select
   champ_df <- reactive({
@@ -1140,7 +1211,7 @@ server <- function(input, output) {
   ###OVERALL WINRATE###
   #####################
   
-  #Overall winrate
+  #Overall win rate or pick rate
   overallmeasure <- reactive({
     
     data <- filtered_data() %>%
@@ -1159,7 +1230,7 @@ server <- function(input, output) {
     
     if (input$measure == 'pickrate') {
       
-      champ_pick_size <- length(unique(data$Game_ID))
+      champ_pick_size <- dim(data)[1]
       output <- round(champ_pick_size*100/Total_Picks_Overall, 2)
       
     }
@@ -1194,7 +1265,23 @@ server <- function(input, output) {
     
   })
   
-  
+  #Separate reactive value for total pick size for the champion
+  Champion_Pick_Size <- reactive({
+    
+    if (input$measure != 'pickrateadjusted') {
+    
+    data <- filtered_data() %>%
+      select(Game_ID, User_ID, Round_Won) %>%
+      group_by(Game_ID, User_ID) %>%
+      summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
+    
+    output <- dim(data)[1]
+    
+    }
+    
+    
+    output
+  })
   
   ############
   ###REGION###

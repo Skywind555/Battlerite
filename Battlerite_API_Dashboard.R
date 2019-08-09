@@ -29,6 +29,7 @@ region_coordinates <- read_excel('Reference Files/region.xlsx')
 #Remove the ally and enemy data other than comp/team roles
 df <- df[, c(1:73, 112, 113)]
 
+df$Map <- factor(df$Map)
 df$Champion <- factor(df$Champion)
 df$Region <- factor(df$Region)
 df$League <- factor(df$League, levels = rev(c('Grand Champion', 'Champion', 'Diamond', 'Platinum', 'Gold',
@@ -97,12 +98,23 @@ df <- mutate(df, Date = substr(Date, 1, 10))
 
 
 df$Player_Type <- factor(df$Player_Type)
+df$Team_Comp <- factor(df$Team_Comp)
+df$Enemy_Comp <- factor(df$Enemy_Comp)
+df$Outfit <- factor(df$Outfit)
+df$Mount <- factor(df$Mount)
+df$Attachment <- factor(df$Attachment)
+df$Pose <- factor(df$Pose)
+df$Title <- factor(df$Title)
+df$Avatar <- factor(df$Avatar)
+df$Date <- factor(df$Date)
 
 #Count only each combination once in one specific order
 df$Team_Roles <- sapply(df$Team_Roles, function(x) strsplit(x, ", "))
 df$Team_Roles <- sapply(df$Team_Roles, function(x) paste(sort(x), collapse = ' '))
+df$Team_Roles <- factor(df$Team_Roles)
 df$Enemy_Roles <- sapply(df$Enemy_Roles, function(x) strsplit(x, ", "))
 df$Enemy_Roles <- sapply(df$Enemy_Roles, function(x) paste(sort(x), collapse = ' '))
+df$Enemy_Roles <- factor(df$Enemy_Roles)
 df$Battlerites <- sapply(df$Battlerites, function(x) strsplit(x, ", "))
 df$Battlerites <- names(sapply(df$Battlerites, function(x) paste(sort(x), collapse = ' ', sep = ', ')))
 
@@ -135,7 +147,59 @@ Total_Picks_Overall <- length(unique(df$Game_ID))*2
 
 df$User_ID <- as.character(df$User_ID)
 
+#Get Champion pick rate adjusted df
+#Get total games played for each user for df for pickrateadjusted
+User_Total_Games_df <- df %>%
+  group_by(Game_ID, User_ID) %>%
+  ungroup() %>%
+  group_by(User_ID) %>%
+  summarize(Total_Games = n())
 
+
+data <- df %>%
+  group_by(Game_ID, User_ID, Champion) 
+
+data <- data %>%
+  ungroup() %>%
+  group_by(User_ID, Champion) %>%
+  summarize(Num_Picks = n())
+
+data <- inner_join(x = data, y = User_Total_Games_df, by = c('User_ID' = 'User_ID'))
+
+categories <- unique(pull(data, Champion))
+num_unique_users <- length(unique(data$User_ID))
+
+Category = c()
+Pick_Rate = c()
+Sample_Size = c()
+
+for (category in categories) {
+  
+  data2 <- filter(data, Champion == category)
+  user_pick_rates <- c()
+  
+  #Check if user has picked any other category and compute probability accordingly
+  for (userid in data2$User_ID) {
+    
+    user_filtered <- filter(data2, User_ID == userid)
+    user_pick_rate <- user_filtered$Num_Picks/user_filtered$Total_Games
+    user_pick_rates <- c(user_pick_rates, user_pick_rate)
+    
+    
+  }
+  
+  category_pick_rate <- sum(user_pick_rates)/num_unique_users
+  sample_size <- length(user_pick_rates)
+  
+  Category <- c(Category, category)
+  Pick_Rate <- c(Pick_Rate, category_pick_rate)
+  Sample_Size <- c(Sample_Size, sample_size)
+}
+
+Champions_Pick_Rate <- data.frame(Category, Pick_Rate, Sample_Size, stringsAsFactors = TRUE) %>%
+  mutate(Pick_Rate = round(Pick_Rate*100,2))
+colnames(Champions_Pick_Rate)[colnames(Champions_Pick_Rate) == 'Category'] <- 'Champion'
+Champions_Pick_Rate$Champion <- factor(Champions_Pick_Rate$Champion)
 
 
 ui <- navbarPage('Navbar',
@@ -618,7 +682,6 @@ server <- function(input, output) {
     
     req(!is.null(filtered_data))
     
-    print(paste0('Pre agg', variable))
     var <- as.name(variable)
     
     data <- filtered_data %>%
@@ -651,9 +714,10 @@ server <- function(input, output) {
       
       Category = c()
       Pick_Rate = c()
+      Sample_Size = c()
       
       for (category in categories) {
-      
+        
         data2 <- filter(data, !!var == category)
         user_pick_rates <- c()
         
@@ -668,14 +732,18 @@ server <- function(input, output) {
         }
         
         category_pick_rate <- sum(user_pick_rates)/num_unique_users
+        sample_size <- length(user_pick_rates)
         
         Category <- c(Category, category)
         Pick_Rate <- c(Pick_Rate, category_pick_rate)
+        Sample_Size <- c(Sample_Size, sample_size)
       }
       
-      data <- data.frame(Category, Pick_Rate, stringsAsFactors = TRUE) %>%
+      data <- data.frame(Category, Pick_Rate, Sample_Size, stringsAsFactors = TRUE) %>%
         mutate(Pick_Rate = round(Pick_Rate*100,2))
+      data$Category <- factor(data$Category, levels = levels(pull(filtered_data, variable)))
       colnames(data)[colnames(data) == 'Category'] <- variable 
+      
       
       }
       
@@ -687,7 +755,6 @@ server <- function(input, output) {
   common_agg <- function(pre_agg_data, measure, variable, sort_descending) {
    
     req(!is.null(pre_agg_data))
-    print(paste0('agg', variable))
     var <- as.name(variable)
     
     if (measure != 'pickrateadjusted') {
@@ -697,7 +764,8 @@ server <- function(input, output) {
       select(!!var, Game_Won) %>%
       group_by(!!var) %>%
       summarize(Win_Rate = round(mean(Game_Won)*100, 2),
-                Pick_Rate = round(n()/Champion_Pick_Size()*100, 2))
+                Pick_Rate = round(n()/Champion_Pick_Size()*100, 2),
+                Sample_Size = n())
     
     } else {
       
@@ -719,6 +787,20 @@ server <- function(input, output) {
         }
       }
     
+    if (variable == 'Region Group') {
+      
+      if (measure == 'pickrate') {
+      
+      data <- select(data, -Win_Rate)
+      
+      } else if (measure != 'pickrateadjusted') {
+        
+        data <- select(data, -Pick_Rate)
+        
+      }
+      
+    }
+    
     
     data
     return(data)
@@ -729,10 +811,7 @@ server <- function(input, output) {
   
   region_agg <- function(filtered_data, measure) {
     req(!is.null(filtered_data))
-    print('region_agg')
-    if (measure == 'winrate' |
-        measure == 'winrateadjusted') {
-      
+
       data <- filtered_data %>%
         select(Game_ID, User_ID, Round_Won, City, Longitude, Latitude, Region, `Region Group`) %>%
         group_by(Game_ID, User_ID, City, Longitude, Latitude, Region, `Region Group`) %>%
@@ -748,17 +827,69 @@ server <- function(input, output) {
         
       }
       
-      data <- data %>%
-        select(Region, `Region Group`, Longitude, Latitude, City, Game_Won) %>%
-        group_by(Region, `Region Group`, Longitude, Latitude, City) %>%
-        summarize(Win_Rate = round(mean(Game_Won)*100,2))
+      if (measure == 'pickrateadjusted') {
+        
+        data2 <- data %>%
+          ungroup() %>%
+          group_by(User_ID, Region) %>%
+          summarize(Num_Picks = n())
+        
+        extra_cols <- data %>%
+          ungroup() %>%
+          group_by(City, Longitude, Latitude, Region, `Region Group`) %>%
+          summarize(Sample_Size = n())
+        
+        data <- inner_join(x = data2, y = User_Games_Played(), by = c('User_ID' = 'User_ID'))
+        
+        categories <- unique(pull(data, Region))
+        num_unique_users <- length(unique(data$User_ID))
+        
+        Category = c()
+        Pick_Rate = c()
+        Sample_Size = c()
+        
+        for (category in categories) {
+          
+          data2 <- filter(data, Region == category)
+          user_pick_rates <- c()
+          
+          #Check if user has picked any other category and compute probability accordingly
+          for (userid in data2$User_ID) {
+            
+            user_filtered <- filter(data2, User_ID == userid)
+            user_pick_rate <- user_filtered$Num_Picks/user_filtered$User_Total_Games
+            user_pick_rates <- c(user_pick_rates, user_pick_rate)
+            
+            
+          }
+          
+          category_pick_rate <- sum(user_pick_rates)/num_unique_users
+          sample_size <- length(user_pick_rates)
+          
+          Category <- c(Category, category)
+          Pick_Rate <- c(Pick_Rate, category_pick_rate)
+          Sample_Size <- c(Sample_Size, sample_size)
+        }
+        
+        data <- data.frame(Category, Pick_Rate, stringsAsFactors = TRUE) %>%
+          mutate(Pick_Rate = round(Pick_Rate*100,2))
+        colnames(data)[colnames(data) == 'Category'] <- 'Region'
+        
+        data$Region <- factor(data$Region, levels = levels(extra_cols$Region))
+        data <- inner_join(x = data, y = extra_cols, by = c('Region' = 'Region'))
       
-    }
-    
+      }
+      
+      if (measure != 'pickrateadjusted') {
+        data <- data %>%
+          select(Region, `Region Group`, Longitude, Latitude, City, Game_Won) %>%
+          group_by(Region, `Region Group`, Longitude, Latitude, City) %>%
+          summarize(Win_Rate = round(mean(Game_Won)*100,2),
+                    Pick_Rate = round(n()/Champion_Pick_Size()*100, 2),
+                    Sample_Size = n())
+      }
+      
 
-    
-    
-    
     return(data)
     
   }
@@ -768,12 +899,16 @@ server <- function(input, output) {
   
   ###Plots###
   
-  create_region_map <- function(region_df, input_champion, region_ref) {
+  create_region_map <- function(region_df, input_champion, region_ref, measure) {
     req(!is.null(region_df))
     req(input_champion != 'None')
-    print('region map')
+
     pal <- colorFactor(c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00"), 
                        levels(region_ref$`Region Group`))
+    
+    if (measure == 'winrate' |
+        measure == 'winrateadjusted') {
+    
     
     m <- leaflet(data = region_df) %>%
       addTiles() %>%
@@ -794,16 +929,41 @@ server <- function(input, output) {
                                                                                          ifelse(Win_Rate <= 75, 11, 13))))))))),
                        label = paste('Server: ', region_df$Region,
                                      ' | City: ', region_df$City,
-                                     ' | Win Rate: ', region_df$Win_Rate)
+                                     ' | Win Rate: ', region_df$Win_Rate,
+                                     ' | Sample Size: ', region_df$Sample_Size)
       )
     return(m)
+    
+    } else {
+      
+      m <- leaflet(data = region_df) %>%
+        addTiles() %>%
+        addCircleMarkers(lng = ~Longitude,
+                         lat = ~Latitude,
+                         stroke = FALSE,
+                         layerId = ~Region,
+                         color = ~pal(`Region Group`),
+                         fillOpacity = 1,
+                         radius = ~ifelse(Pick_Rate <= quantile(region_df$Pick_Rate, 0.20), 3,
+                                          ifelse(Pick_Rate <= quantile(region_df$Pick_Rate, 0.40), 5,
+                                                 ifelse(Pick_Rate <= quantile(region_df$Pick_Rate, 0.60), 7, 
+                                                        ifelse(Pick_Rate <= quantile(region_df$Pick_Rate, 0.8), 9, 11)))),
+                         label = paste('Server: ', region_df$Region,
+                                       ' | City: ', region_df$City,
+                                       ' | Pick Rate: ', region_df$Pick_Rate,
+                                       ' | Sample Size: ', region_df$Sample_Size)
+        )
+      
+      
+      
+    }
     
   }
   
   
   create_region_table <- function(data, row_name) {
     req(!is.null(data))
-    print('region data table')
+
     dat <- datatable(data, selection = list(mode = 'single', target = 'cell'), options = list(searching = FALSE,
                                                                                               paging = FALSE),
                      callback = JS(gsub("\n", "", paste0("table.on('click.dt', 'td', function() {
@@ -831,9 +991,9 @@ server <- function(input, output) {
   
   
   #Group bars by 2v2, 3v3, solo queue etc stacked
-  create_barplot <- function(agg_df, variable) {
+  create_barplot <- function(agg_df, variable, measure) {
     req(!is.null(agg_df))
-    print(paste0('bar plot', variable))
+
     var <- as.name(variable)
     var2 <- var
     
@@ -918,6 +1078,9 @@ server <- function(input, output) {
       }
       
       
+      if (measure == 'winrate' | 
+          measure == 'winrateadjusted') {
+      
       bar <- ggplot(data = agg_df, aes(x = !!var, y = Win_Rate, fill = !!var2)) +
         geom_bar(width = 1, stat = 'identity') +
         ylab('Win Rate') +
@@ -925,16 +1088,40 @@ server <- function(input, output) {
         scale_fill_manual(values = Colors_subset) +
         theme(legend.position = 'none')
       
+      } else {
+        
+        bar <- ggplot(data = agg_df, aes(x = !!var, y = Pick_Rate, fill = !!var2)) +
+          geom_bar(width = 1, stat = 'identity') +
+          ylab('Pick Rate') +
+          xlab(variable) +
+          scale_fill_manual(values = Colors_subset) +
+          theme(legend.position = 'none')
+        
+      }
+      
       
     } else {
       
       if (variable %in% c('Date', 'Title', 'Avatar')) {
         
         Color <- "#E69F00"
+        
+        if (measure == 'winrate' |
+            measure == 'winrateadjusted') {
+        
         bar <- ggplot(data = agg_df, aes(x = !!var, y = Win_Rate)) +
           geom_bar(width = 1, stat = 'identity', fill = Color) +
           ylab('Win Rate') +
           xlab(variable)
+        } else {
+          
+          bar <- ggplot(data = agg_df, aes(x = !!var, y = Pick_Rate)) +
+            geom_bar(width = 1, stat = 'identity', fill = Color) +
+            ylab('Pick Rate') +
+            xlab(variable)
+          
+          
+        }
         
       }
       
@@ -963,7 +1150,7 @@ server <- function(input, output) {
     
   }
   
-  create_tooltip <- function(input_hover, count_aggregate_df, count_aggregate, left_adjust, top_adjust) {
+  create_tooltip <- function(input_hover, count_aggregate_df, count_aggregate, measure, left_adjust, top_adjust) {
     
     hover <- input_hover
     if (is.null(hover)) return(NULL)
@@ -992,14 +1179,27 @@ server <- function(input, output) {
                     "left:", left_px + left_adjust, "px; top:", top_px + top_adjust, "px;")
     
     
-    winrate <- count_aggregate_df[count_aggregate == Name,]$Win_Rate
-    return(list("Name" = Name, "Win" = winrate, "style" = style))
+    if (measure == 'winrate' |
+        measure == 'winrateadjusted') {
+      
+      value <- count_aggregate_df[count_aggregate == Name,]$Win_Rate
+      
+    } else {
+      
+      value <- count_aggregate_df[count_aggregate == Name,]$Pick_Rate
+      
+    }
+    
+    
+    samplesize <- count_aggregate_df[count_aggregate == Name,]$Sample_Size
+    samplesize
+    return(list("Name" = Name, "Value" = value, "Size" = samplesize, "style" = style))
     
     
   }
   
   #Tooltip for ping graph uses hover$x instead of hover$y
-  create_tooltip2 <- function(input_hover, count_aggregate_df, count_aggregate, left_adjust, top_adjust) {
+  create_tooltip2 <- function(input_hover, count_aggregate_df, count_aggregate, measure, left_adjust, top_adjust) {
     
     hover <- input_hover
     if (is.null(hover)) return(NULL)
@@ -1027,9 +1227,20 @@ server <- function(input, output) {
     style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.20); ",
                     "left:", left_px + left_adjust, "px; top:", top_px + top_adjust, "px;")
     
+    if (measure == 'winrate' |
+        measure == 'winrateadjusted') {
+      
+      value <- count_aggregate_df[count_aggregate == Name,]$Win_Rate
+      
+    } else {
+      
+      value <- count_aggregate_df[count_aggregate == Name,]$Pick_Rate
+      
+    }
     
-    winrate <- count_aggregate_df[count_aggregate == Name,]$Win_Rate
-    return(list("Name" = Name, "Win" = winrate, "style" = style))
+    
+    samplesize <- count_aggregate_df[count_aggregate == Name,]$Sample_Size
+    return(list("Name" = Name, "Value" = value, "Size" = samplesize, "style" = style))
     
     
   }  
@@ -1189,7 +1400,7 @@ server <- function(input, output) {
     
     req(input$champion != 'None')
     
-    print('champ')
+
     data <- filter(champion_crosswalk, Value == input$champion)
     filename <- data$`Icon File Name`
     imagelink <- paste0('https://github.com/Skywind555/Personal-Projects/blob/master/ImagesConverted/', 
@@ -1202,7 +1413,7 @@ server <- function(input, output) {
   output$ChampImage <- renderUI({
     
     req(input$champion != 'None')
-  print('champ image')
+
     tags$img(src = selected_champ())
     
   })
@@ -1213,6 +1424,14 @@ server <- function(input, output) {
   
   #Overall win rate or pick rate
   overallmeasure <- reactive({
+    
+    req(filtered_Region() == 0 & length(filtered_Battlerites$battlerites) == 0 & filtered_League() == 0 &
+        filtered_Servertype() == 0 & filtered_Map() == 0 & filtered_Casual() == 0 &
+        filtered_Mount() == 0 & filtered_Title() == 0 & filtered_Avatar() == 0 &
+        filtered_Outfit() == 0 & filtered_Attachment() == 0 & filtered_Pose() == 0 &
+        filtered_RegionGroup() == 0 & filtered_PlayerType() == 0 & filtered_Date() == 0 &
+        filtered_Championtime() == 0 & filtered_Totaltime() == 0)
+    
     
     data <- filtered_data() %>%
       select(Game_ID, User_ID, Round_Won) %>%
@@ -1235,6 +1454,14 @@ server <- function(input, output) {
       
     }
     
+    if (input$measure == 'pickrateadjusted') {
+      
+      data <- filter(Champions_Pick_Rate, Champion == input$champion)
+      output <- data$Pick_Rate
+      
+    }
+    
+    
     if (input$measure == 'winrate' |
         input$measure == 'winrateadjusted') {
     
@@ -1247,6 +1474,13 @@ server <- function(input, output) {
   })
   
   output$OverallMeasure <- renderUI({
+    
+    req(filtered_Region() == 0 & length(filtered_Battlerites$battlerites) == 0 & filtered_League() == 0 &
+          filtered_Servertype() == 0 & filtered_Map() == 0 & filtered_Casual() == 0 &
+          filtered_Mount() == 0 & filtered_Title() == 0 & filtered_Avatar() == 0 &
+          filtered_Outfit() == 0 & filtered_Attachment() == 0 & filtered_Pose() == 0 &
+          filtered_RegionGroup() == 0 & filtered_PlayerType() == 0 & filtered_Date() == 0 &
+          filtered_Championtime() == 0 & filtered_Totaltime() == 0)
     
     if (input$measure == 'winrate' |
         input$measure == 'winrateadjusted') {
@@ -1315,7 +1549,7 @@ server <- function(input, output) {
   )
   
   #Create Region plot
-  output$Region <- renderLeaflet({create_region_map(Region_df(), input$champion, region_coordinates)
+  output$Region <- renderLeaflet({create_region_map(Region_df(), input$champion, region_coordinates, input$measure)
   })
   
   #Filtered region label
@@ -1330,10 +1564,15 @@ server <- function(input, output) {
                                            input$measure,
                                            'Region Group')})
   
-  RegionGroup_df <- reactive({common_agg(pre_agg_regiongroup(),
-                                         input$measure,
-                                         'Region Group',
-                                         FALSE)})
+  RegionGroup_df <- reactive({
+    
+    common_agg(pre_agg_regiongroup(),
+               input$measure,
+               'Region Group',
+               FALSE)
+    
+    
+    })
   
   
   #Filter Region Group observe event
@@ -1402,20 +1641,21 @@ server <- function(input, output) {
   
   output$TotalTime <- renderPlot({
     
-    create_barplot(Totaltime_df(), 'Total_Time_Played')
+    create_barplot(Totaltime_df(), 'Total_Time_Played', input$measure)
     
   })
   
   #Totaltime hover label
   output$TotalTime_tooltip <- renderUI({
     
-    info <- create_tooltip(input$hoverTotalTime, Totaltime_df(), Totaltime_df()$Total_Time_Played, 40, -30)
+    info <- create_tooltip(input$hoverTotalTime, Totaltime_df(), Totaltime_df()$Total_Time_Played,
+                           input$measure, 40, -30)
     
-    if (!is.null(info$Win)) {
+    if (!is.null(info$Value)) {
       
       wellPanel(
         style = info$style,
-        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+        p(HTML(paste0("<font size = '1'>Value: ", info$Value, "<br/>Sample Size: ", info$Size, "</font>")))
       )
       
     }
@@ -1458,20 +1698,21 @@ server <- function(input, output) {
   
   output$ChampionTime <- renderPlot({
     
-    create_barplot(Championtime_df(), 'Champion_Time_Played')
+    create_barplot(Championtime_df(), 'Champion_Time_Played', input$measure)
     
   })
   
   #Totaltime hover label
   output$ChampionTime_tooltip <- renderUI({
     
-    info <- create_tooltip(input$hoverChampionTime, Championtime_df(), Championtime_df()$Champion_Time_Played, 40, -30)
+    info <- create_tooltip(input$hoverChampionTime, Championtime_df(), Championtime_df()$Champion_Time_Played, 
+                           input$measure, 40, -30)
     
-    if (!is.null(info$Win)) {
+    if (!is.null(info$Value)) {
       
       wellPanel(
         style = info$style,
-        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+        p(HTML(paste0("<font size = '1'>Value: ", info$Value, "<br/>Sample Size: ", info$Size, "</font>")))
       )
       
     }
@@ -1517,18 +1758,19 @@ server <- function(input, output) {
   output$League <- renderPlot({
     
     req(input$champion != 'None')
-    create_barplot(League_df(), 'League')})
+    create_barplot(League_df(), 'League', input$measure)})
   
   #League hover label
   output$League_tooltip <- renderUI({
     
-    info <- create_tooltip(input$hoverLeague, League_df(), League_df()$League, 40, -30)
+    info <- create_tooltip(input$hoverLeague, League_df(), League_df()$League,
+                           input$measure, 40, -30)
     
-    if (!is.null(info$Win)) {
+    if (!is.null(info$Value)) {
       
       wellPanel(
         style = info$style,
-        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+        p(HTML(paste0("<font size = '1'>Value: ", info$Value, "<br/>Sample Size: ", info$Size, "</font>")))
       )
       
     }
@@ -1572,20 +1814,21 @@ server <- function(input, output) {
   
   output$PlayerType <- renderPlot({
     
-    create_barplot(PlayerType_df(), 'Player_Type')
+    create_barplot(PlayerType_df(), 'Player_Type', input$measure)
     
   })
   
   #PlayerType hover label
   output$PlayerType_tooltip <- renderUI({
     
-    info <- create_tooltip(input$hoverPlayerType, PlayerType_df(), PlayerType_df()$Player_Type, 40, -30)
+    info <- create_tooltip(input$hoverPlayerType, PlayerType_df(), PlayerType_df()$Player_Type, 
+                           input$measure, 40, -30)
     
-    if (!is.null(info$Win)) {
+    if (!is.null(info$Value)) {
       
       wellPanel(
         style = info$style,
-        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+        p(HTML(paste0("<font size = '1'>Value: ", info$Value, "<br/>Sample Size: ", info$Size, "</font>")))
       )
       
     }
@@ -1629,20 +1872,21 @@ server <- function(input, output) {
   
   output$Date <- renderPlot({
     
-    create_barplot(date_df(), 'Date')
+    create_barplot(date_df(), 'Date', input$measure)
     
   })
   
   #Date hover label
   output$Date_tooltip <- renderUI({
     
-    info <- create_tooltip(input$hoverDate, date_df(), date_df()$Date, 40, -30)
+    info <- create_tooltip(input$hoverDate, date_df(), date_df()$Date,
+                           input$measure, 40, -30)
     
-    if (!is.null(info$Win)) {
+    if (!is.null(info$Value)) {
       
       wellPanel(
         style = info$style,
-        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+        p(HTML(paste0("<font size = '1'>Value: ", info$Value, "<br/>Sample Size: ", info$Size, "</font>")))
       )
       
     }
@@ -1672,20 +1916,21 @@ server <- function(input, output) {
   
   output$Ping <- renderPlot({
 
-    create_barplot(agg_ping(), 'Ping') +
+    create_barplot(agg_ping(), 'Ping', input$measure) +
       theme(axis.text.x = element_text(angle = 45, hjust = 1))
     
   })
   
   output$Ping_tooltip <- renderUI({
     
-      info <- create_tooltip2(input$hoverPing, agg_ping(), agg_ping()$Ping, -25, 210)
+      info <- create_tooltip2(input$hoverPing, agg_ping(), agg_ping()$Ping, 
+                              input$measure, -25, 210)
       
-      if (!is.null(info$Win)) {
+      if (!is.null(info$Value)) {
         
         wellPanel(
           style = info$style,
-          p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+          p(HTML(paste0("<font size = '1'>Value: ", info$Value, "<br/>Sample Size: ", info$Size, "</font>")))
         )
         
       }
@@ -1731,20 +1976,21 @@ server <- function(input, output) {
   
   output$ServerType <- renderPlot({
     
-    create_barplot(Servertype_df(), 'Server_Type')
+    create_barplot(Servertype_df(), 'Server_Type', input$measure)
     
   })
   
   #Matchtype hover label
   output$ServerType_tooltip <- renderUI({
     
-    info <- create_tooltip(input$hoverServerType, Servertype_df(), Servertype_df()$Server_Type, 40, 268)
+    info <- create_tooltip(input$hoverServerType, Servertype_df(), Servertype_df()$Server_Type,
+                           input$measure, 40, 268)
     
-    if (!is.null(info$Win)) {
+    if (!is.null(info$Value)) {
       
       wellPanel(
         style = info$style,
-        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+        p(HTML(paste0("<font size = '1'>Value: ", info$Value, "<br/>Sample Size: ", info$Size, "</font>")))
       )
       
     }
@@ -1795,20 +2041,21 @@ server <- function(input, output) {
   
   output$Map <- renderPlot({
     
-    create_barplot(Map_df(), 'Map')
+    create_barplot(Map_df(), 'Map', input$measure)
     
   })
   
   #Matchtype hover label
   output$Map_tooltip <- renderUI({
     
-    info <- create_tooltip(input$hoverMap, Map_df(), Map_df()$Map, 40, -30)
+    info <- create_tooltip(input$hoverMap, Map_df(), Map_df()$Map,
+                           input$measure, 40, -30)
     
-    if (!is.null(info$Win)) {
+    if (!is.null(info$Value)) {
       
       wellPanel(
         style = info$style,
-        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+        p(HTML(paste0("<font size = '1'>Value: ", info$Value, "<br/>Sample Size: ", info$Size, "</font>")))
       )
       
     }
@@ -1852,20 +2099,21 @@ server <- function(input, output) {
   
   output$Casual <- renderPlot({
     
-    create_barplot(Casual_df(), 'Ranking_Type')
+    create_barplot(Casual_df(), 'Ranking_Type', input$measure)
     
   })
   
   #Ranking_Type hover label
   output$Casual_tooltip <- renderUI({
     
-    info <- create_tooltip(input$hoverCasual, Casual_df(), Casual_df()$Ranking_Type, 40, -30)
+    info <- create_tooltip(input$hoverCasual, Casual_df(), Casual_df()$Ranking_Type, 
+                           input$measure, 40, -30)
     
-    if (!is.null(info$Win)) {
+    if (!is.null(info$Value)) {
       
       wellPanel(
         style = info$style,
-        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+        p(HTML(paste0("<font size = '1'>Value: ", info$Value, "<br/>Sample Size: ", info$Size, "</font>")))
       )
       
     }
@@ -1912,7 +2160,7 @@ server <- function(input, output) {
   
   output$Avatar <- renderPlot({
     
-    create_barplot(Avatar_df(), 'Avatar')
+    create_barplot(Avatar_df(), 'Avatar', input$measure)
     
   })
   
@@ -1921,17 +2169,18 @@ server <- function(input, output) {
     
     req(!is.null(input$hoverAvatar))
     
-    info <- create_tooltip(input$hoverAvatar, Avatar_df(), Avatar_df()$Avatar, 40, -30)
+    info <- create_tooltip(input$hoverAvatar, Avatar_df(), Avatar_df()$Avatar, 
+                           input$measure, 40, -30)
     selected_avatar <- info$Name
     filename <- filter(avatar_crosswalk, Value == selected_avatar)$`Avatar File Name`
     imagelink <- paste0('https://github.com/Skywind555/Personal-Projects/blob/master/ImagesConverted/', 
                         filename, '.png?raw=true')
     
-    if (!is.null(info$Win)) {
+    if (!is.null(info$Value)) {
       
       wellPanel(
         style = info$style,
-        p(HTML(paste0("<font size = '1'>", info$Win, "</font>"))),
+        p(HTML(paste0("<font size = '1'>Value: ", info$Value, "<br/>Sample Size: ", info$Size, "</font>"))),
         tags$img(src = imagelink)
       )
       
@@ -1976,20 +2225,21 @@ server <- function(input, output) {
   
   output$Title <- renderPlot({
     
-    create_barplot(Title_df(), 'Title')
+    create_barplot(Title_df(), 'Title', input$measure)
     
   })
   
   #Title hover label
   output$Title_tooltip <- renderUI({
     
-    info <- create_tooltip(input$hoverTitle, Title_df(), Title_df()$Title, 40, -30)
+    info <- create_tooltip(input$hoverTitle, Title_df(), Title_df()$Title, 
+                           input$measure, 40, -30)
     
-    if (!is.null(info$Win)) {
+    if (!is.null(info$Value)) {
       
       wellPanel(
         style = info$style,
-        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+        p(HTML(paste0("<font size = '1'>Value: ", info$Value, "<br/>Sample Size: ", info$Size, "</font>")))
       )
       
     }
@@ -2013,8 +2263,11 @@ server <- function(input, output) {
                        'Outfit',
                        TRUE)
     
+    test <- 1
+    test
+    
     outfit_crosswalk$Value <- factor(outfit_crosswalk$Value, levels = levels(data$Outfit))
-    data <- inner_join(x = data, y = outfit_crosswalk, by = c('Outfit' = 'Value'))[-3]
+    data <- inner_join(x = data, y = outfit_crosswalk, by = c('Outfit' = 'Value'))[-4]
     data$Rarity <- factor(data$Rarity, levels = c('Common', 'Rare', 'Epic', 'Legendary'))
     data <- data[!duplicated(data$Outfit),]
     
@@ -2044,20 +2297,21 @@ server <- function(input, output) {
   
   output$Outfit <- renderPlot({
     
-    create_barplot(Outfit_df(), 'Outfit')
+    create_barplot(Outfit_df(), 'Outfit', input$measure)
     
   })
   
   #Outfit hover label
   output$Outfit_tooltip <- renderUI({
     
-    info <- create_tooltip(input$hoverOutfit, Outfit_df(), Outfit_df()$Outfit, 40, -30)
+    info <- create_tooltip(input$hoverOutfit, Outfit_df(), Outfit_df()$Outfit,
+                           input$measure, 40, -30)
     
-    if (!is.null(info$Win)) {
+    if (!is.null(info$Value)) {
       
       wellPanel(
         style = info$style,
-        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+        p(HTML(paste0("<font size = '1'>Value: ", info$Value, "<br/>Sample Size: ", info$Size, "</font>")))
       )
       
     }
@@ -2081,7 +2335,7 @@ server <- function(input, output) {
                        TRUE)
     
     attachment_crosswalk$Value <- factor(attachment_crosswalk$Value, levels = levels(data$Attachment))
-    data <- inner_join(x = data, y = attachment_crosswalk, by = c('Attachment' = 'Value'))[-3]
+    data <- inner_join(x = data, y = attachment_crosswalk, by = c('Attachment' = 'Value'))[-4]
     data$Rarity <- factor(data$Rarity, levels = c('Common', 'Rare', 'Epic', 'Legendary'))
     data <- data[!duplicated(data$Attachment),]
     
@@ -2111,20 +2365,21 @@ server <- function(input, output) {
   
   output$Attachment <- renderPlot({
     
-    create_barplot(Attachment_df(), 'Attachment')
+    create_barplot(Attachment_df(), 'Attachment', input$measure)
     
   })
   
   #Attachment hover label
   output$Attachment_tooltip <- renderUI({
     
-    info <- create_tooltip(input$hoverAttachment, Attachment_df(), Attachment_df()$Attachment, 40, -30)
+    info <- create_tooltip(input$hoverAttachment, Attachment_df(), Attachment_df()$Attachment,
+                           input$measure, 40, -30)
     
-    if (!is.null(info$Win)) {
+    if (!is.null(info$Value)) {
       
       wellPanel(
         style = info$style,
-        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+        p(HTML(paste0("<font size = '1'>Value: ", info$Value, "<br/>Sample Size: ", info$Size, "</font>")))
       )
       
     }
@@ -2146,7 +2401,7 @@ server <- function(input, output) {
                        TRUE)
     
     mount_crosswalk$Value <- factor(mount_crosswalk$Value, levels = levels(data$Mount))
-    data <- inner_join(x = data, y = mount_crosswalk, by = c('Mount' = 'Value'))[-3]
+    data <- inner_join(x = data, y = mount_crosswalk, by = c('Mount' = 'Value'))[-4]
     data$Rarity <- factor(data$Rarity, levels = c('Common', 'Rare', 'Epic', 'Legendary'))
     data <- data[!duplicated(data$Mount),]
     
@@ -2176,20 +2431,21 @@ server <- function(input, output) {
   
   output$Mount <- renderPlot({
     
-    create_barplot(Mount_df(), 'Mount')
+    create_barplot(Mount_df(), 'Mount', input$measure)
     
   })
   
   #Attachment hover label
   output$Mount_tooltip <- renderUI({
     
-    info <- create_tooltip(input$hoverMount, Mount_df(), Mount_df()$Mount, 40, -30)
+    info <- create_tooltip(input$hoverMount, Mount_df(), Mount_df()$Mount,
+                           input$measure, 40, -30)
     
-    if (!is.null(info$Win)) {
+    if (!is.null(info$Value)) {
       
       wellPanel(
         style = info$style,
-        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+        p(HTML(paste0("<font size = '1'>Value: ", info$Value, "<br/>Sample Size: ", info$Size, "</font>")))
       )
       
     }
@@ -2214,7 +2470,7 @@ server <- function(input, output) {
                        TRUE)
 
     pose_crosswalk$Value <- factor(pose_crosswalk$Value, levels = levels(data$Pose))
-    data <- inner_join(x = data, y = pose_crosswalk, by = c('Pose' = 'Value'))[-3]
+    data <- inner_join(x = data, y = pose_crosswalk, by = c('Pose' = 'Value'))[-4]
     data$Rarity <- factor(data$Rarity, levels = c('Common', 'Rare', 'Epic', 'Legendary'))
     data <- data[!duplicated(data$Pose),]
     
@@ -2244,20 +2500,21 @@ server <- function(input, output) {
   
   output$Pose <- renderPlot({
     
-    create_barplot(Pose_df(), 'Pose')
+    create_barplot(Pose_df(), 'Pose', input$measure)
     
   })
   
   #Pose hover label
   output$Pose_tooltip <- renderUI({
     
-    info <- create_tooltip(input$hoverPose, Pose_df(), Pose_df()$Pose, 40, -30)
+    info <- create_tooltip(input$hoverPose, Pose_df(), Pose_df()$Pose,
+                           input$measure, 40, -30)
     
-    if (!is.null(info$Win)) {
+    if (!is.null(info$Value)) {
       
       wellPanel(
         style = info$style,
-        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
+        p(HTML(paste0("<font size = '1'>Value: ", info$Value, "<br/>Sample Size: ", info$Size, "</font>")))
       )
       
     }
@@ -2270,19 +2527,8 @@ server <- function(input, output) {
   
   stats_pre_agg <- reactive({
     
-    if (input$measure == 'winrate' |
-        input$measure == 'winrateadjusted') {
-    print('stats pre agg')
     data <- filtered_data() %>%
-      select(Game_ID, User_ID, Round_Won, Kills, Deaths, Assists, Damage, Damage_Received, Protection, 
-             Protection_Received, Control, Control_Received, Energy_Used, Energy_Gained, Abilities_Used,
-             Num_Energy_Used, Orb_Kills, First_Orb, MVP, Round_Length, Total_Score, Highest_Score,
-             Health_Shards, Energy_Shards, Time_Alive, Queue_Time) %>%
       mutate(Survived = ifelse(is.negative(Time_Alive), 1, 0)) %>%
-      select(Game_ID, User_ID, Round_Won, Kills, Deaths, Assists, Damage, Damage_Received, Protection, 
-             Protection_Received, Control, Control_Received, Energy_Used, Energy_Gained, Abilities_Used,
-             Num_Energy_Used, Orb_Kills, First_Orb, MVP, Round_Length, Total_Score, Highest_Score,
-             Health_Shards, Energy_Shards, Survived, Queue_Time) %>%
       group_by(Game_ID, User_ID) %>%
       summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0),
                 Kills = mean(Kills, na.rm = TRUE),
@@ -2308,7 +2554,8 @@ server <- function(input, output) {
                 Survived = mean(Survived, na.rm = TRUE),
                 Queue_Time = mean(Queue_Time, na.rm = TRUE))
     
-    if (input$measure == 'winrateadjusted') {
+    if (input$measure == 'winrateadjusted' |
+        input$measure == 'pickrateadjusted') {
       
       data <- data %>%
       ungroup() %>%
@@ -2339,17 +2586,11 @@ server <- function(input, output) {
       
     }
     
-    }
-    
     data
     
   })
   
   stats_agg <- reactive({
-    print('stats agg')
-    
-    if (input$measure == 'winrate' |
-        input$measure == 'winrateadjusted') {
     
     data <- stats_pre_agg() %>%
       ungroup() %>%
@@ -2376,18 +2617,20 @@ server <- function(input, output) {
                 Energy_Shards = mean(Energy_Shards),
                 Survived = mean(Survived),
                 Queue_Time = mean(Queue_Time))
-    }
 
   })
   
   stats_agg_lose <- reactive({
+    
+    req(input$measure == 'winrate' |
+        input$measure == 'winrateadjusted')
     
     data <- filter(stats_agg(), Game_Won == 0)
     
   })
   
   stats_agg_win <- reactive({
-    
+   
     data <- filter(stats_agg(), Game_Won == 1)
     
   })
@@ -2400,11 +2643,12 @@ server <- function(input, output) {
     data$Value <- round(data$Value, 2)
     data
 
-
-    
   })
   
   stats_lose_df <- reactive({
+    
+    req(input$measure == 'winrate' |
+          input$measure == 'winrateadjusted')
     
     #Remove Game_Won column
     data <- stats_agg_lose()[,2:length(stats_agg_lose())]
@@ -2412,16 +2656,46 @@ server <- function(input, output) {
     data$Value <- round(data$Value, 2)
     data
 
+  })
+  
+  stats_average_df <- reactive({
+    
+    req(input$measure == 'pickrate' |
+          input$measure == 'pickrateadjusted')
+    
+    data <- stats_agg()
+    Value <- colMeans(data)
+    data <- data.frame(Value)
+    data$Measure <- rownames(data)
+    rownames(data) <- 1:length(rownames(data))
+    data$Value <- round(data$Value, 2)
+    #Remove game_won
+    data <- data[2:dim(data)[1],]
+    data <- select(data, Measure, Value)
+    data
     
   })
   
+  #For wins view and overall(when pickrate selected)
   output$StatsWinLabel <- renderUI({
+    
+    if(input$measure == 'winrate' |
+          input$measure == 'winrateadjusted') {
     
     HTML('<font size = "2"><b><u>Average Stats Per Round For Game Wins</font></b></u>')
     
+    } else {
+      
+      HTML('<font size = "2"><b><u>Average Stats Per Round Overall</font></b></u>')
+      
+    }
+      
   })
   
   output$StatsLoseLabel <- renderUI({
+    
+    req(input$measure == 'winrate' |
+          input$measure == 'winrateadjusted')
     
     HTML('<font size = "2"><b><u>Average Stats Per Round For Game Losses</font></b></u>')
     
@@ -2429,14 +2703,27 @@ server <- function(input, output) {
   
   
   output$StatsWin <- DT::renderDataTable(expr = {
-    print('stats win data table')
+    
+    if(input$measure == 'winrate' |
+          input$measure == 'winrateadjusted') {
+    
     datatable(stats_win_df(), options = list(searching = FALSE,
                                              paging = FALSE))
+      
+    } else {
+      
+      datatable(stats_average_df(), options = list(searching = FALSE,
+                                                   paging = FALSE))
+      
+    }
     
   })
   
   output$StatsLose <- DT::renderDataTable(expr = {
-    print('stats lose data table')
+    
+    req(input$measure == 'winrate' |
+          input$measure == 'winrateadjusted')
+    
     datatable(stats_lose_df(), options = list(searching = FALSE,
                                               paging = FALSE))
     
@@ -2448,9 +2735,7 @@ server <- function(input, output) {
   
   ally_comp_pre_agg <- reactive({
     
-    if (input$measure == 'winrate' |
-        input$measure == 'winrateadjusted') {
-    print('ally comp pre agg')
+
     data <- filtered_data() %>%
       select(Game_ID, User_ID, Round_Won, Team_Comp, Server_Type, Team_Roles) %>%
       group_by(Game_ID, User_ID, Team_Comp, Server_Type, Team_Roles) %>%
@@ -2462,37 +2747,105 @@ server <- function(input, output) {
         ungroup() %>%
         group_by(User_ID, Team_Comp, Server_Type, Team_Roles) %>%
         summarize(Game_Won = mean(Game_Won))
+    
+    }
+    
+    if (input$measure == 'pickrateadjusted') {
       
+      data2 <- data %>%
+        ungroup() %>%
+        group_by(User_ID, Team_Comp) %>%
+        summarize(Num_Picks = n())
+      
+      extra_cols <- data %>%
+        ungroup() %>%
+        group_by(Team_Comp, Server_Type, Team_Roles) %>%
+        summarize(Sample_Size = n())
+      
+      data <- inner_join(x = data2, y = User_Games_Played(), by = c('User_ID' = 'User_ID'))
+      
+      categories <- unique(pull(data, Team_Comp))
+      num_unique_users <- length(unique(data$User_ID))
+      
+      Category = c()
+      Pick_Rate = c()
+      Sample_Size = c()
+      
+      for (category in categories) {
+        
+        data2 <- filter(data, Team_Comp == category)
+        user_pick_rates <- c()
+        
+        #Check if user has picked any other category and compute probability accordingly
+        for (userid in data2$User_ID) {
+          
+          user_filtered <- filter(data2, User_ID == userid)
+          user_pick_rate <- user_filtered$Num_Picks/user_filtered$User_Total_Games
+          user_pick_rates <- c(user_pick_rates, user_pick_rate)
+          
+          
+        }
+        
+        category_pick_rate <- sum(user_pick_rates)/num_unique_users
+        sample_size <- length(user_pick_rates)
+        
+        Category <- c(Category, category)
+        Pick_Rate <- c(Pick_Rate, category_pick_rate)
+        Sample_Size <- c(Sample_Size, sample_size)
+      }
+      
+      data <- data.frame(Category, Pick_Rate, stringsAsFactors = TRUE) %>%
+        mutate(Pick_Rate = round(Pick_Rate*100,2))
+      colnames(data)[colnames(data) == 'Category'] <- 'Team_Comp'
+      
+      data$Team_Comp <- factor(data$Team_Comp, levels = levels(extra_cols$Team_Comp))
+      data <- inner_join(x = data, y = extra_cols, by = c('Team_Comp' = 'Team_Comp'))
       
     }
     
-    }
     
     data
     
   })
   
   ally_comp_agg <- reactive({
-    print('ally comp agg')
     
-    if (input$measure == 'winrate' |
-        input$measure == 'winrateadjusted') {
-    
+    if (input$measure != 'pickrateadjusted') {
+
     data <- ally_comp_pre_agg() %>%
       ungroup() %>%
       select(Game_Won, Team_Comp, Server_Type, Team_Roles) %>%
       group_by(Team_Comp, Team_Roles, Server_Type) %>%
       summarize(Win_Rate = round(mean(Game_Won)*100, 2),
-                Count = n()) %>%
-      arrange(desc(Win_Rate))
+                Pick_Rate = round(n()/Champion_Pick_Size()*100,2),
+                Sample_Size = n())
+    
+    } else {
+      
+      data <- ally_comp_pre_agg()
+      
+    }
+    
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+      
+      data <- arrange(data, desc(Win_Rate)) %>%
+        select(Team_Comp, Team_Roles, Server_Type, Win_Rate, Sample_Size)
+      
+    } else {
+      
+      data <- arrange(data, desc(Pick_Rate)) %>%
+        select(Team_Comp, Team_Roles, Server_Type, Pick_Rate, Sample_Size)
+      
+    }
     
     data2 <- data %>%
-      filter(Count >= 3)
+      filter(Sample_Size >= 3)
     
     if (dim(data2)[1] < 10) {
       
       data2 <- data %>%
-        filter(Count >= 2)
+        filter(Sample_Size >= 2)
       
       if(dim(data2)[1] < 10) {
         
@@ -2501,21 +2854,14 @@ server <- function(input, output) {
       }
       
     }
-  
-    }
-    
-    test <- 1
-    
+
     data2
     
   })
   
   enemy_comp_pre_agg <- reactive({
     req(!is.null(filtered_data()))
-    print('enemy comp pre agg')
-    if (input$measure == 'winrate' |
-        input$measure == 'winrateadjusted') {
-    
+
     data <- filtered_data() %>%
       select(Game_ID, User_ID, Round_Won, Enemy_Comp, Server_Type, Enemy_Roles) %>%
       group_by(Game_ID, User_ID, Enemy_Comp, Server_Type, Enemy_Roles) %>%
@@ -2528,8 +2874,59 @@ server <- function(input, output) {
         group_by(User_ID, Enemy_Comp, Server_Type, Enemy_Roles) %>%
         summarize(Game_Won = mean(Game_Won))
       
-      
     }
+    
+    if (input$measure == 'pickrateadjusted') {
+      
+      data2 <- data %>%
+        ungroup() %>%
+        group_by(User_ID, Enemy_Comp) %>%
+        summarize(Num_Picks = n())
+      
+      extra_cols <- data %>%
+        ungroup() %>%
+        group_by(Enemy_Comp, Server_Type, Enemy_Roles) %>%
+        summarize(Sample_Size = n())
+      
+      data <- inner_join(x = data2, y = User_Games_Played(), by = c('User_ID' = 'User_ID'))
+      
+      categories <- unique(pull(data, Enemy_Comp))
+      num_unique_users <- length(unique(data$User_ID))
+      
+      Category = c()
+      Pick_Rate = c()
+      Sample_Size = c()
+      
+      for (category in categories) {
+        
+        data2 <- filter(data, Enemy_Comp == category)
+        user_pick_rates <- c()
+        
+        #Check if user has picked any other category and compute probability accordingly
+        for (userid in data2$User_ID) {
+          
+          user_filtered <- filter(data2, User_ID == userid)
+          user_pick_rate <- user_filtered$Num_Picks/user_filtered$User_Total_Games
+          user_pick_rates <- c(user_pick_rates, user_pick_rate)
+          
+          
+        }
+        
+        category_pick_rate <- sum(user_pick_rates)/num_unique_users
+        sample_size <- length(user_pick_rates)
+        
+        Category <- c(Category, category)
+        Pick_Rate <- c(Pick_Rate, category_pick_rate)
+        Sample_Size <- c(Sample_Size, sample_size)
+      }
+      
+      data <- data.frame(Category, Pick_Rate, stringsAsFactors = TRUE) %>%
+        mutate(Pick_Rate = round(Pick_Rate*100,2))
+      colnames(data)[colnames(data) == 'Category'] <- 'Enemy_Comp'
+      
+      data$Enemy_Comp <- factor(data$Enemy_Comp, levels = levels(extra_cols$Enemy_Comp))
+      data <- inner_join(x = data, y = extra_cols, by = c('Enemy_Comp' = 'Enemy_Comp'))
+      
     }
     
     data
@@ -2539,26 +2936,43 @@ server <- function(input, output) {
   
   enemy_comp_agg <- reactive({
     req(!is.null(enemy_comp_pre_agg))
-    print('enemy comp agg')
-    
-    if (input$measure == 'winrate' |
-        input$measure == 'winrateadjusted') {
+
+    if (input$measure != 'pickrateadjusted') {
     
     data <- enemy_comp_pre_agg() %>%
       ungroup() %>%
       select(Game_Won, Enemy_Comp, Server_Type, Enemy_Roles) %>%
       group_by(Enemy_Comp, Enemy_Roles, Server_Type) %>%
       summarize(Win_Rate = round(mean(Game_Won)*100, 2),
-                Count = n()) %>%
-      arrange(desc(Win_Rate))
+                Pick_Rate = round(n()/Champion_Pick_Size()*100,2),
+                Sample_Size = n())
+    
+    } else {
+      
+      data <- enemy_comp_pre_agg()
+      
+    }
+    
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+      
+      data <- arrange(data, desc(Win_Rate)) %>%
+        select(Enemy_Comp, Server_Type, Enemy_Roles, Win_Rate, Sample_Size)
+      
+    } else {
+      
+      data <- arrange(data, desc(Pick_Rate)) %>%
+        select(Enemy_Comp, Server_Type, Enemy_Roles, Pick_Rate, Sample_Size)
+      
+    }
     
     data2 <- data %>%
-      filter(Count >= 3)
+      filter(Sample_Size >= 3)
     
     if (dim(data2)[1] < 10) {
       
       data2 <- data %>%
-        filter(Count >= 2)
+        filter(Sample_Size >= 2)
       
       if(dim(data2)[1] < 10) {
         
@@ -2568,10 +2982,6 @@ server <- function(input, output) {
       
     }
     
-    
-    }
-    test <- 1
-    
     data2
     
   })
@@ -2579,7 +2989,16 @@ server <- function(input, output) {
   
   output$BestCompsLabel <- renderUI({
     
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+    
     HTML('<font size = "2"><b><u>Top 5 Best Comps</font></b></u>')
+      
+    } else {
+      
+      HTML('<font size = "2"><b><u>Top 5 Most Played Comps</font></b></u>')
+      
+    }
     
   })
   output$BestComps <- renderTable(head(ally_comp_agg(), 5)
@@ -2587,8 +3006,17 @@ server <- function(input, output) {
   
   output$WorstCompsLabel <- renderUI({
     
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+    
     HTML('<font size = "2"><b><u>Top 5 Worst Comps</font></b></u>')
     
+    } else {
+      
+      HTML('<font size = "2"><b><u>Top 5 Least Played Comps</font></b></u>')
+      
+    }
+      
   })
   
   output$WorstComps <- renderTable(tail(ally_comp_agg(), 5)
@@ -2596,7 +3024,16 @@ server <- function(input, output) {
   
   output$BestMatchupsLabel <- renderUI({
     
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+    
     HTML('<font size = "2"><b><u>Top 5 Best Matchups</font></b></u>')
+      
+    } else {
+      
+      HTML('<font size = "2"><b><u>Top 5 Most Popular Matchups</font></b></u>')
+      
+    }
     
   })
   
@@ -2604,7 +3041,16 @@ server <- function(input, output) {
   
   output$WorstMatchupsLabel <- renderUI({
     
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+    
     HTML('<font size = "2"><b><u>Top 5 Worst Matchups</font></b></u>')
+      
+    } else {
+      
+      HTML('<font size = "2"><b><u>Top 5 Least Popular Matchups</font></b></u>')
+      
+    }
     
   })
   
@@ -2615,10 +3061,7 @@ server <- function(input, output) {
   ######################
   
   pre_agg_allyroles <- reactive({
-    print('ally role pre agg')
-    if (input$measure == 'winrate' |
-        input$measure == 'winrateadjusted') {
-      
+
       data <- filtered_data() %>%
         select(Game_ID, User_ID, Round_Won, Team_Roles, Enemy_Roles) %>%
         group_by(Game_ID, User_ID, Team_Roles, Enemy_Roles) %>%
@@ -2633,32 +3076,104 @@ server <- function(input, output) {
 
       }
       
-    }
+      if (input$measure == 'pickrateadjusted') {
+        
+        data2 <- data %>%
+          ungroup() %>%
+          group_by(User_ID, Team_Roles) %>%
+          summarize(Num_Picks = n())
+        
+        extra_cols <- data %>%
+          ungroup() %>%
+          group_by(Team_Roles, Enemy_Roles) %>%
+          summarize(Sample_Size = n())
+        
+        data <- inner_join(x = data2, y = User_Games_Played(), by = c('User_ID' = 'User_ID'))
+        
+        categories <- unique(pull(data, Team_Roles))
+        num_unique_users <- length(unique(data$User_ID))
+        
+        Category = c()
+        Pick_Rate = c()
+        Sample_Size = c()
+        
+        for (category in categories) {
+          
+          data2 <- filter(data, Team_Roles == category)
+          user_pick_rates <- c()
+          
+          #Check if user has picked any other category and compute probability accordingly
+          for (userid in data2$User_ID) {
+            
+            user_filtered <- filter(data2, User_ID == userid)
+            user_pick_rate <- user_filtered$Num_Picks/user_filtered$User_Total_Games
+            user_pick_rates <- c(user_pick_rates, user_pick_rate)
+            
+            
+          }
+          
+          category_pick_rate <- sum(user_pick_rates)/num_unique_users
+          sample_size <- length(user_pick_rates)
+          
+          Category <- c(Category, category)
+          Pick_Rate <- c(Pick_Rate, category_pick_rate)
+          Sample_Size <- c(Sample_Size, sample_size)
+        }
+        
+        data <- data.frame(Category, Pick_Rate, stringsAsFactors = TRUE) %>%
+          mutate(Pick_Rate = round(Pick_Rate*100,2))
+        colnames(data)[colnames(data) == 'Category'] <- 'Team_Roles'
+        
+        data$Team_Roles <- factor(data$Team_Roles, levels = levels(extra_cols$Team_Roles))
+        data <- inner_join(x = data, y = extra_cols, by = c('Team_Roles' = 'Team_Roles'))
+        data
+        
+      }
+      
+      
+      
     
     data
     
     })
   
   Allyroles_df <- reactive({
-    print('ally role agg')
     
-    if (input$measure == 'winrate' |
-        input$measure == 'winrateadjusted') {
+    if (input$measure != 'pickrateadjusted') {
     data <- pre_agg_allyroles() %>%
       ungroup() %>%
       select(Team_Roles, Game_Won) %>%
       group_by(Team_Roles) %>%
-      summarize(Win_Rate = round(mean(Game_Won)*100,2),
-                Count = n()) %>%
-      arrange(desc(Win_Rate))
+      summarize(Win_Rate = round(mean(Game_Won)*100, 2),
+                Pick_Rate = round(n()/Champion_Pick_Size()*100,2),
+                Sample_Size = n())
+    
+    } else {
+      
+      data <- pre_agg_allyroles()
+      
+    }
+    
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+    
+      data <- arrange(data, desc(Win_Rate)) %>%
+        select(Team_Roles, Win_Rate, Sample_Size)
+      
+    } else {
+      
+      data <- arrange(data, desc(Pick_Rate)) %>%
+        select(Team_Roles, Pick_Rate, Sample_Size)
+      
+    }
     
     data2 <- data %>%
-      filter(Count >= 3)
+      filter(Sample_Size >= 3)
     
     if (dim(data2)[1] < 2) {
       
       data2 <- data %>%
-        filter(Count >= 2)
+        filter(Sample_Size >= 2)
       
       if(dim(data2)[1] < 2) {
         
@@ -2668,33 +3183,50 @@ server <- function(input, output) {
       
     }
     
-    }
-    test <- 1
     data2
     
   })
   
   Allyroles_best <- reactive({
     
-    if (input$measure == 'winrate' |
-        input$measure == 'winrateadjusted') {
+    if (input$measure != 'pickrateadjusted') {
     
     data <- pre_agg_allyroles() %>%
       ungroup() %>%
       select(Team_Roles, Enemy_Roles, Game_Won) %>%
       group_by(Team_Roles, Enemy_Roles) %>%
-      summarize(Win_Rate = round(mean(Game_Won)*100,2),
-                Count = n()) %>%
-      arrange(desc(Win_Rate)) %>%
-      filter(Team_Roles == head(Allyroles_df(), 1)$Team_Roles)
+      summarize(Win_Rate = round(mean(Game_Won)*100, 2),
+                Pick_Rate = round(n()/Champion_Pick_Size()*100,2),
+                Sample_Size = n())
+    
+    } else {
+      
+      data <- pre_agg_allyroles()
+      
+    }
+    
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+      
+      data <- arrange(data, desc(Win_Rate)) %>%
+        select(Team_Roles, Enemy_Roles, Win_Rate, Sample_Size)
+      
+    } else {
+      
+      data <- arrange(data, desc(Pick_Rate)) %>%
+        select(Team_Roles, Enemy_Roles, Pick_Rate, Sample_Size)
+      
+    }
+    
+    data <- filter(data, Team_Roles == head(Allyroles_df(), 1)$Team_Roles)
     
     data2 <- data %>%
-      filter(Count >= 3)
+      filter(Sample_Size >= 3)
     
     if (dim(data2)[1] < 2) {
       
       data2 <- data %>%
-        filter(Count >= 2)
+        filter(Sample_Size >= 2)
       
       if(dim(data2)[1] < 2) {
         
@@ -2703,35 +3235,54 @@ server <- function(input, output) {
       }
       
     }
-    
-    }
-    
-    test <- 1
+
     data2
     
   })
   
   Allyroles_worst <- reactive({
     
-    if (input$measure == 'winrate' |
-        input$measure == 'winrateadjusted') {
+    test <- 1
+    test
+    
+    if (input$measure != 'pickrateadjusted') {
     
     data <- pre_agg_allyroles() %>%
       ungroup() %>%
       select(Team_Roles, Enemy_Roles, Game_Won) %>%
       group_by(Team_Roles, Enemy_Roles) %>%
-      summarize(Win_Rate = round(mean(Game_Won)*100,2),
-                Count = n()) %>%
-      arrange(desc(Win_Rate)) %>%
-      filter(Team_Roles == tail(Allyroles_df(), 1)$Team_Roles)
+      summarize(Win_Rate = round(mean(Game_Won)*100, 2),
+                Pick_Rate = round(n()/Champion_Pick_Size()*100,2),
+                Sample_Size = n())
+    
+    } else {
+      
+      data <- pre_agg_allyroles()
+      
+    }
+    
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+      
+      data <- arrange(data, desc(Win_Rate)) %>%
+        select(Team_Roles, Enemy_Roles, Win_Rate, Sample_Size)
+      
+    } else {
+      
+      data <- arrange(data, desc(Pick_Rate)) %>%
+        select(Team_Roles, Enemy_Roles, Pick_Rate, Sample_Size)
+      
+    }
+    
+      data <- filter(data, Team_Roles == tail(Allyroles_df(), 1)$Team_Roles)
     
     data2 <- data %>%
-      filter(Count >= 3)
+      filter(Sample_Size >= 3)
     
     if (dim(data2)[1] < 2) {
       
       data2 <- data %>%
-        filter(Count >= 2)
+        filter(Sample_Size >= 2)
       
       if(dim(data2)[1] < 2) {
         
@@ -2740,12 +3291,6 @@ server <- function(input, output) {
       }
       
     }
-    
-    
-    }
-    
-    test <- 1
-    
     
     data2
     
@@ -2753,83 +3298,146 @@ server <- function(input, output) {
   
   output$BestAllyRoles <- renderUI({
     
+    bestoverall <- head(Allyroles_best(), 1)$Team_Roles
+    bestoverall_count <- head(Allyroles_df(), 1)$Sample_Size
+    bestmatchup <- head(Allyroles_best(), 1)$Enemy_Roles
+    bestmatchup_count <- head(Allyroles_best(), 1)$Sample_Size
+    worstmatchup <- tail(Allyroles_best(), 1)$Enemy_Roles
+    worstmatchup_count <- tail(Allyroles_best(), 1)$Sample_Size
+    
     if (input$measure == 'winrate' |
         input$measure == 'winrateadjusted') {
 
-    bestoverall <- head(Allyroles_best(), 1)$Team_Roles
     bestoverall_win <- head(Allyroles_df(), 1)$Win_Rate
-    bestoverall_count <- head(Allyroles_df(), 1)$Count
-    bestmatchup <- head(Allyroles_best(), 1)$Enemy_Roles
     bestmatchup_win <- head(Allyroles_best(), 1)$Win_Rate
-    bestmatchup_count <- head(Allyroles_best(), 1)$Count
-    worstmatchup <- tail(Allyroles_best(), 1)$Enemy_Roles
     worstmatchup_win <- tail(Allyroles_best(), 1)$Win_Rate
-    worstmatchup_count <- tail(Allyroles_best(), 1)$Count
     
-    HTML(paste0('<font size = "2"> The best overall roles for ',
+    output <- HTML(paste0('<font size = "2"> The best overall roles for ',
                 input$champion,
                 ' is ',
                 bestoverall,
                 ' with a win rate of ',
                 bestoverall_win,
-                ' with ',
+                ' percent with ',
                 bestoverall_count,
                 ' observations. The best matchup is against ',
                 bestmatchup,
                 ' with a win rate of ',
                 bestmatchup_win,
-                ' with ',
+                ' percent with ',
                 bestmatchup_count,
                 ' observations and the worst matchup against ',
                 worstmatchup,
                 ' with a win rate of ',
                 worstmatchup_win,
-                ' with ',
+                ' percent with ',
                 worstmatchup_count,
                 ' observations.</font></b></u>'))
+    } else {
+      
+      bestoverall_pick <- head(Allyroles_df(), 1)$Pick_Rate
+      bestmatchup_pick <- head(Allyroles_best(), 1)$Pick_Rate
+      worstmatchup_pick <- tail(Allyroles_best(), 1)$Pick_Rate
+      
+      output <- HTML(paste0('<font size = "2"> The most popular overall roles for ',
+                            input$champion,
+                            ' is ',
+                            bestoverall,
+                            ' with a pick rate of ',
+                            bestoverall_pick,
+                            ' percent with ',
+                            bestoverall_count,
+                            ' observations. The most popular matchup is against ',
+                            bestmatchup,
+                            ' with a pick rate of ',
+                            bestmatchup_pick,
+                            ' percent with ',
+                            bestmatchup_count,
+                            ' observations and the least popular matchup against ',
+                            worstmatchup,
+                            ' with a pick rate of ',
+                            worstmatchup_pick,
+                            ' percent with ',
+                            worstmatchup_count,
+                            ' observations.</font></b></u>'))
+      
     }
+    
+    output
     
   })
   
   output$WorstAllyRoles <- renderUI({
     
+    worstoverall <- head(Allyroles_worst(), 1)$Team_Roles
+    worstoverall_count <- tail(Allyroles_df(), 1)$Sample_Size
+    bestmatchup <- head(Allyroles_worst(), 1)$Enemy_Roles
+    bestmatchup_count <- head(Allyroles_worst(), 1)$Sample_Size
+    worstmatchup <- tail(Allyroles_worst(), 1)$Enemy_Roles
+    worstmatchup_count <- tail(Allyroles_worst(), 1)$Sample_Size
+    
+    
     if (input$measure == 'winrate' |
         input$measure == 'winrateadjusted') {
       
-      
-      worstoverall <- head(Allyroles_worst(), 1)$Team_Roles
       worstoverall_win <- tail(Allyroles_df(), 1)$Win_Rate
-      worstoverall_count <- tail(Allyroles_df(), 1)$Count
-      bestmatchup <- head(Allyroles_worst(), 1)$Enemy_Roles
       bestmatchup_win <- head(Allyroles_worst(), 1)$Win_Rate
-      bestmatchup_count <- head(Allyroles_worst(), 1)$Count
-      worstmatchup <- tail(Allyroles_worst(), 1)$Enemy_Roles
       worstmatchup_win <- tail(Allyroles_worst(), 1)$Win_Rate
-      worstmatchup_count <- tail(Allyroles_worst(), 1)$Count
     
-      HTML(paste0('<font size = "2"> The worst overall roles for ',
-                  input$champion,
-                  ' is ',
-                  worstoverall,
-                  ' with a win rate of ',
-                  worstoverall_win,
-                  ' with ',
-                  worstoverall_count,
-                  ' observations. The best matchup is against ',
-                  bestmatchup,
-                  ' with a win rate of ',
-                  bestmatchup_win,
-                  ' with ',
-                  bestmatchup_count,
-                  ' observations and the worst matchup against ',
-                  worstmatchup,
-                  ' with a win rate of ',
-                  worstmatchup_win,
-                  ' with ',
-                  worstmatchup_count,
-                  ' observations.</font></b></u>'))
-    
+      output <- HTML(paste0('<font size = "2"> The worst overall roles for ',
+                            input$champion,
+                            ' is ',
+                            worstoverall,
+                            ' with a win rate of ',
+                            worstoverall_win,
+                            ' percent with ',
+                            worstoverall_count,
+                            ' observations. The best matchup is against ',
+                            bestmatchup,
+                            ' with a win rate of ',
+                            bestmatchup_win,
+                            ' percent with ',
+                            bestmatchup_count,
+                            ' observations and the worst matchup against ',
+                            worstmatchup,
+                            ' with a win rate of ',
+                            worstmatchup_win,
+                            ' percent with ',
+                            worstmatchup_count,
+                            ' observations.</font></b></u>'))
+      
+    } else {
+      
+      worstoverall_pick <- tail(Allyroles_df(), 1)$Pick_Rate
+      bestmatchup_pick <- head(Allyroles_worst(), 1)$Pick_Rate
+      worstmatchup_pick <- tail(Allyroles_worst(), 1)$Pick_Rate
+      
+      output <- HTML(paste0('<font size = "2"> The least popular roles for ',
+                            input$champion,
+                            ' is ',
+                            worstoverall,
+                            ' with a pick rate of ',
+                            worstoverall_pick,
+                            ' percent with ',
+                            worstoverall_count,
+                            ' observations. The most popular matchup is against ',
+                            bestmatchup,
+                            ' with a pick rate of ',
+                            bestmatchup_pick,
+                            ' percent with ',
+                            bestmatchup_count,
+                            ' observations and the least popular matchup against ',
+                            worstmatchup,
+                            ' with a pick rate of ',
+                            worstmatchup_pick,
+                            ' percent with ',
+                            worstmatchup_count,
+                            ' observations.</font></b></u>'))
+      
+      
     }
+    
+    output
     
   })
   
@@ -2842,7 +3450,7 @@ server <- function(input, output) {
   create_battlerites_agg <- function(filtered_data,
                                      input_measure,
                                      filtered_battlerites) {
-    print('battlerites agg')
+ 
     Battlerites = c()
     Win_Rate = c()
     
@@ -2941,7 +3549,7 @@ server <- function(input, output) {
   
   
   create_battlerites_barplot <- function(agg_df) {
-    print('battlerites barplot')
+
     Colors <- setNames(c('#FF4FCE', '#A8FF47', '#FFB800', '#FF2A1C', '#00FFE9', '#0095FF', '#BBFFFC'),
                        levels(agg_df$`Battlerite Type`))
     
@@ -3053,7 +3661,8 @@ server <- function(input, output) {
       
       if(length(filtered_Battlerites$battlerites) < 5) {
     
-    info <- create_tooltip(input$hoverBattlerites, battlerites_agg1(), battlerites_agg1()$Battlerites, 40, 0)
+    info <- create_tooltip(input$hoverBattlerites, battlerites_agg1(), battlerites_agg1()$Battlerites,
+                           input$measure, 40, 0)
     
       } else {
         
@@ -3064,20 +3673,21 @@ server <- function(input, output) {
       
       } else {
       
-        info <- create_tooltip(input$hoverBattlerites, battlerites_agg1(), battlerites_agg1()$Battlerites, 40, 0) 
+        info <- create_tooltip(input$hoverBattlerites, battlerites_agg1(), battlerites_agg1()$Battlerites,
+                               input$measure, 40, 0) 
         
       }
     
     if (check) {
     
-    if (!is.null(info$Win)) {
-      
-      wellPanel(
-        style = info$style,
-        p(HTML(paste0("<font size = '1'>", info$Win, "</font>")))
-      )
-      
-    }
+      if (!is.null(info$Value)) {
+        
+        wellPanel(
+          style = info$style,
+          p(HTML(paste0("<font size = '1'>Value: ", info$Value, "<br/>Sample Size: ", info$Size, "</font>")))
+        )
+        
+      }
       
     }
     

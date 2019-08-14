@@ -350,6 +350,8 @@ ui <- navbarPage('Navbar',
                                    ),
                                    fluidRow(width = 6,
                                             plotOutput(outputId = 'Ping',
+                                                       dblclick = 'filterPing',
+                                                       click = 'unfilterPing',
                                                        hover = hoverOpts('hoverPing'),
                                                        height = '300px'),
                                             uiOutput('Ping_tooltip')
@@ -455,7 +457,9 @@ ui <- navbarPage('Navbar',
                           
                           fluidRow(
                             column(width = 12,
-                                   div(DT::dataTableOutput('Players'), style = 'font-size:75%')
+                                   div(DT::dataTableOutput('Players'), style = 'font-size:75%'),
+                                   div(DT::dataTableOutput('Players_Game'), style = "font-size:75%"),
+                                   div(DT::dataTableOutput('Players_Round'), style = "font-size:75%")
                             )
                           )
                  )
@@ -477,13 +481,13 @@ server <- function(input, output) {
                                    filtered_region, filtered_league, filtered_servertype,
                                    filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
                                    filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
-                                   filtered_playertype, filtered_date, filtered_battlerites) {
+                                   filtered_playertype, filtered_date, filtered_battlerites, filtered_ping,
+                                   calc_pick_size) {
     #Only include if have selected a champion
     req(input_champion != 'None')
     
     data <- champ_df
       
-      print('filtered data')
     #Filter on region
     if (filtered_region != 0) {
       data <- filter(data, Region %in% filtered_region)
@@ -563,6 +567,18 @@ server <- function(input, output) {
       data <- filter(data, Pose %in% filtered_pose)
     }
       
+    #Filter on Ping
+    if (filtered_ping != -1) {
+      test <- 1
+      data <- filter(data, Ping %in% filtered_ping)
+    }
+      
+      if (calc_pick_size) {
+        
+        return(data)
+
+      }
+      
       if (length(filtered_battlerites) > 0) {
         
         for (br in 1:length(filtered_battlerites)) {
@@ -577,17 +593,7 @@ server <- function(input, output) {
             remove_col <- names(data) %in% filtered_battlerites[br]
             data <- data[, !remove_col]
             
-          }
-          
-          }
-
-          
-        
-        
-      }
-      
-      
-      
+          }}}
       
       #Check for columns with all 0's and remove
       remove_cols <- c()
@@ -614,10 +620,6 @@ server <- function(input, output) {
   }
   
 
-
-  
-  
-  
   ###Observe Events###
   
   
@@ -635,7 +637,6 @@ server <- function(input, output) {
     
     data <- common_agg_df
     
-    
     if (round(input_filter_y) > length(levels(fct_drop(data[[variable]])))) {
       
       filtered_variable(levels(fct_drop(data[[variable]]))[length(levels(fct_drop(data[[variable]])))])
@@ -651,7 +652,7 @@ server <- function(input, output) {
     }
     
   }
-  
+
   OE_Filter_Battlerites <- function(agg_df, filtered_variable, input_filter_y, variable) {
     
     data <- agg_df
@@ -669,27 +670,32 @@ server <- function(input, output) {
       filtered_variable <- c(filtered_variable, levels(fct_drop(data[[variable]]))[round(input_filter_y)])
       
     }
-    
-
-    
-  }
-  
-  
+}
   
   ###Aggregates###
   
-  pre_agg <- function(filtered_data, measure, variable) {
+  pre_agg <- function(filtered_data, measure, variable, calc_baseline) {
     
     req(!is.null(filtered_data))
     
     var <- as.name(variable)
     
+    if (calc_baseline) {
+      
+      user_games_played <- Baseline_User_Games_Played()
+      
+    } else {
+      
+      user_games_played <- User_Games_Played()
+      
+    }
+    
+    
     data <- filtered_data %>%
       select(Game_ID, User_ID, Round_Won, !!var) %>%
       group_by(Game_ID, User_ID, !!var) %>%
       summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
-      
-      
+    
       if (measure == 'winrateadjusted') {
         
         data <- data %>%
@@ -706,8 +712,8 @@ server <- function(input, output) {
         ungroup() %>%
         group_by(User_ID, !!var) %>%
         summarize(Num_Picks = n())
-      
-      data <- inner_join(x = data, y = User_Games_Played(), by = c('User_ID' = 'User_ID'))
+    
+      data <- inner_join(x = data, y = user_games_played, by = c('User_ID' = 'User_ID'))
       
       categories <- unique(pull(data, variable))
       num_unique_users <- length(unique(data$User_ID))
@@ -739,9 +745,15 @@ server <- function(input, output) {
         Sample_Size <- c(Sample_Size, sample_size)
       }
       
-      data <- data.frame(Category, Pick_Rate, Sample_Size, stringsAsFactors = TRUE) %>%
-        mutate(Pick_Rate = round(Pick_Rate*100,2))
-      data$Category <- factor(data$Category, levels = levels(pull(filtered_data, variable)))
+      data <- data.frame(Category, Pick_Rate, Sample_Size, stringsAsFactors = TRUE)
+      
+      if (is.factor(data$Category)) {
+        
+        data$Category <- factor(data$Category, levels = levels(pull(filtered_data, variable)))
+        
+      } 
+      
+      data <- mutate(data, Pick_Rate = round(Pick_Rate*100,2))
       colnames(data)[colnames(data) == 'Category'] <- variable 
       
       
@@ -1052,10 +1064,17 @@ server <- function(input, output) {
       
       if (variable == 'Ping') {
         
-        pal = colorRampPalette(c('green', 'yellow', 'red'))
-        Colors1 = setNames(pal(21), levels(agg_df$Ping)[1:21])
-        Colors2 = setNames(c('#6D756B', '#6D756B'), c('Time out', 'Unknown'))
-        Colors = c(Colors1, Colors2)
+        pal = colorRampPalette(c('green', 'yellow'))
+        Colors1 = setNames(pal(8), levels(agg_df$Ping)[1:8])
+        pal = colorRampPalette(c('yellow', 'orange'))
+        Colors2 = setNames(pal(5), levels(agg_df$Ping)[9:13])
+        pal = colorRampPalette(c('orange', 'red'))
+        Colors3 = setNames(pal(4), levels(agg_df$Ping)[14:17])
+        
+
+        Colors4 = setNames(c(rep('#FF0000', 4), '#6D756B', '#6D756B'), c('170', '180', '190', '200', 
+                                                                         'Time out', 'Unknown'))
+        Colors = c(Colors1, Colors2, Colors3, Colors4)
         
         Colors_subset <- Colors[as.vector(agg_df$Ping)]
         
@@ -1271,11 +1290,24 @@ server <- function(input, output) {
   filtered_Date <- reactiveVal(0)
   filtered_Championtime <- reactiveVal(0)
   filtered_Totaltime <- reactiveVal(0)
+  filtered_Ping <- reactiveVal(-1)
   
   #Find total number of games played for each user-champion to compute pick rate adjusted
   User_Games_Played <- reactive({
     
     data <- filtered_data() %>%
+      group_by(Game_ID, User_ID) %>%
+      summarize(count = n()) %>%
+      ungroup() %>%
+      select(-count) %>%
+      group_by(User_ID) %>%
+      summarize(User_Total_Games = n())
+    
+  })
+  
+  Baseline_User_Games_Played <- reactive({
+    
+    data <- filtered_data2() %>%
       group_by(Game_ID, User_ID) %>%
       summarize(count = n()) %>%
       ungroup() %>%
@@ -1358,7 +1390,33 @@ server <- function(input, output) {
                                                   filtered_RegionGroup(),
                                                   filtered_PlayerType(),
                                                   filtered_Date(),
-                                                  filtered_Battlerites$battlerites
+                                                  filtered_Battlerites$battlerites,
+                                                  filtered_Ping(),
+                                                  FALSE
+  )})
+  
+  #Filtered data without filters on battlerites to calculate champion pick size
+  filtered_data2 <- reactive({create_filtered_data(champ_df(),
+                                                   input$champion,
+                                                   filtered_Totaltime(),
+                                                   filtered_Championtime(),
+                                                   filtered_Region(),
+                                                   filtered_League(),
+                                                   filtered_Servertype(),
+                                                   filtered_Map(),
+                                                   filtered_Casual(),
+                                                   filtered_Mount(),
+                                                   filtered_Title(),
+                                                   filtered_Avatar(),
+                                                   filtered_Outfit(),
+                                                   filtered_Attachment(),
+                                                   filtered_Pose(),
+                                                   filtered_RegionGroup(),
+                                                   filtered_PlayerType(),
+                                                   filtered_Date(),
+                                                   filtered_Battlerites$battlerites,
+                                                   filtered_Ping(),
+                                                   TRUE
   )})
   
  
@@ -1387,6 +1445,7 @@ server <- function(input, output) {
       filtered_Date(0)
       filtered_Championtime(0)
       filtered_Totaltime(0)
+      filtered_Ping(-1)
       
       
     }
@@ -1430,7 +1489,7 @@ server <- function(input, output) {
         filtered_Mount() == 0 & filtered_Title() == 0 & filtered_Avatar() == 0 &
         filtered_Outfit() == 0 & filtered_Attachment() == 0 & filtered_Pose() == 0 &
         filtered_RegionGroup() == 0 & filtered_PlayerType() == 0 & filtered_Date() == 0 &
-        filtered_Championtime() == 0 & filtered_Totaltime() == 0)
+        filtered_Championtime() == 0 & filtered_Totaltime() == 0 & filtered_Ping() == 0)
     
     
     data <- filtered_data() %>%
@@ -1480,7 +1539,7 @@ server <- function(input, output) {
           filtered_Mount() == 0 & filtered_Title() == 0 & filtered_Avatar() == 0 &
           filtered_Outfit() == 0 & filtered_Attachment() == 0 & filtered_Pose() == 0 &
           filtered_RegionGroup() == 0 & filtered_PlayerType() == 0 & filtered_Date() == 0 &
-          filtered_Championtime() == 0 & filtered_Totaltime() == 0)
+          filtered_Championtime() == 0 & filtered_Totaltime() == 0 & filtered_Ping() == 0) 
     
     if (input$measure == 'winrate' |
         input$measure == 'winrateadjusted') {
@@ -1502,19 +1561,25 @@ server <- function(input, output) {
   #Separate reactive value for total pick size for the champion
   Champion_Pick_Size <- reactive({
     
-    if (input$measure != 'pickrateadjusted') {
-    
     data <- filtered_data() %>%
       select(Game_ID, User_ID, Round_Won) %>%
       group_by(Game_ID, User_ID) %>%
       summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
     
     output <- dim(data)[1]
+
+  })
+  
+  Baseline_Champion_Pick_Size <- reactive ({
     
-    }
+    data <- filtered_data2() %>%
+      select(Game_ID, User_ID, Round_Won) %>%
+      group_by(Game_ID, User_ID) %>%
+      summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
+    
+    output <- dim(data)[1]
     
     
-    output
   })
   
   ############
@@ -1562,7 +1627,8 @@ server <- function(input, output) {
   #Pre agg
   pre_agg_regiongroup <- reactive({pre_agg(filtered_data(),
                                            input$measure,
-                                           'Region Group')})
+                                           'Region Group',
+                                           FALSE)})
   
   RegionGroup_df <- reactive({
     
@@ -1611,7 +1677,8 @@ server <- function(input, output) {
   
   pre_agg_totaltime <- reactive({pre_agg(filtered_data(),
                                     input$measure,
-                                    'Total_Time_Played')})
+                                    'Total_Time_Played',
+                                    FALSE)})
   
   Totaltime_df <- reactive({common_agg(pre_agg_totaltime(),
                                   input$measure,
@@ -1668,7 +1735,8 @@ server <- function(input, output) {
   
   pre_agg_championtime <- reactive({pre_agg(filtered_data(),
                                          input$measure,
-                                         'Champion_Time_Played')})
+                                         'Champion_Time_Played',
+                                         FALSE)})
   
   Championtime_df <- reactive({common_agg(pre_agg_championtime(),
                                        input$measure,
@@ -1727,7 +1795,8 @@ server <- function(input, output) {
   
   pre_agg_league <- reactive({pre_agg(filtered_data(),
                                       input$measure,
-                                      'League')})
+                                      'League',
+                                      FALSE)})
   
   League_df <- reactive({common_agg(pre_agg_league(),
                                     input$measure,
@@ -1783,7 +1852,8 @@ server <- function(input, output) {
   
   pre_agg_playertype <- reactive({pre_agg(filtered_data(),
                                           input$measure,
-                                          'Player_Type')})
+                                          'Player_Type',
+                                          FALSE)})
   
   PlayerType_df <- reactive({common_agg(pre_agg_playertype(),
                                         input$measure,
@@ -1842,7 +1912,8 @@ server <- function(input, output) {
   
   pre_agg_date <- reactive({pre_agg(filtered_data(),
                                           input$measure,
-                                          'Date')})
+                                          'Date',
+                                           FALSE)})
   
   date_df <- reactive({common_agg(pre_agg_date(),
                                         input$measure,
@@ -1901,7 +1972,8 @@ server <- function(input, output) {
     
     pre_agg(filtered_data(),
             input$measure,
-            'Ping')
+            'Ping',
+            FALSE)
     
   })
   
@@ -1913,6 +1985,25 @@ server <- function(input, output) {
                FALSE)
     
   })
+  
+  
+  observeEvent(
+    eventExpr = input$filterPing,
+    handlerExpr = {
+      
+      OE_Filter_common(agg_ping(), filtered_Ping, input$filterPing$x, 'Ping')
+      
+    }
+  )
+  
+  observeEvent(
+    eventExpr = input$unfilterPing,
+    handlerExpr = {
+      
+      filtered_Ping(-1)
+      
+    }
+  )
   
   output$Ping <- renderPlot({
 
@@ -1945,7 +2036,8 @@ server <- function(input, output) {
   
   pre_agg_servertype <- reactive({pre_agg(filtered_data(),
                                           input$measure,
-                                          'Server_Type')})
+                                          'Server_Type',
+                                          FALSE)})
   
   Servertype_df <- reactive({common_agg(pre_agg_servertype(),
                                         input$measure,
@@ -2003,7 +2095,8 @@ server <- function(input, output) {
   
   pre_agg_map <- reactive({pre_agg(filtered_data(),
                                    input$measure,
-                                   'Map')})
+                                   'Map',
+                                   FALSE)})
   
   Map_df <- reactive({
     
@@ -2068,7 +2161,8 @@ server <- function(input, output) {
   
   pre_agg_casual <- reactive({pre_agg(filtered_data(),
                                       input$measure,
-                                      'Ranking_Type')})
+                                      'Ranking_Type',
+                                      FALSE)})
   
   Casual_df <- reactive({common_agg(pre_agg_casual(),
                                     input$measure,
@@ -2126,7 +2220,8 @@ server <- function(input, output) {
   
   pre_agg_avatar <- reactive({pre_agg(filtered_data(),
                                       input$measure,
-                                      'Avatar')})
+                                      'Avatar',
+                                      FALSE)})
   
   Avatar_df <- reactive({
     
@@ -2194,7 +2289,8 @@ server <- function(input, output) {
   
   pre_agg_title <- reactive({pre_agg(filtered_data(),
                                      input$measure,
-                                     'Title')})
+                                     'Title',
+                                     FALSE)})
   
   Title_df <- reactive({common_agg(pre_agg_title(),
                                    input$measure,
@@ -2254,7 +2350,8 @@ server <- function(input, output) {
   
   pre_agg_outfit <- reactive({pre_agg(filtered_data(),
                                       input$measure,
-                                      'Outfit')})
+                                      'Outfit',
+                                      FALSE)})
   
   Outfit_df <- reactive({
     
@@ -2325,7 +2422,8 @@ server <- function(input, output) {
   
   pre_agg_attachment <- reactive({pre_agg(filtered_data(),
                                           input$measure,
-                                          'Attachment')})
+                                          'Attachment',
+                                          FALSE)})
   
   Attachment_df <- reactive({
     
@@ -2392,7 +2490,8 @@ server <- function(input, output) {
   
   pre_agg_mount <- reactive({pre_agg(filtered_data(),
                                      input$measure,
-                                     'Mount')})
+                                     'Mount',
+                                     FALSE)})
   
   Mount_df <- reactive({
     data <- common_agg(pre_agg_mount(),
@@ -2460,7 +2559,8 @@ server <- function(input, output) {
   
   pre_agg_pose <- reactive({pre_agg(filtered_data(),
                                     input$measure,
-                                    'Pose')})
+                                    'Pose',
+                                    FALSE)})
   
   Pose_df <- reactive({
     
@@ -3449,18 +3549,42 @@ server <- function(input, output) {
   
   create_battlerites_agg <- function(filtered_data,
                                      input_measure,
-                                     filtered_battlerites) {
+                                     filtered_battlerites,
+                                     battlerites_df_prefilter) {
  
-    Battlerites = c()
-    Win_Rate = c()
+    Battlerites <- c()
+    Win_Rate <- c()
+    Pick_Rate <- c()
+    Sample_Size <- c()
     
-    if (length(names(filtered_data)) >= 76) {
+    if (length(filtered_battlerites) == 5) {
+      
+      br_set <- filtered_data$Battlerites[1]
+      
+      if (input_measure == 'winrate' | input_measure == 'winrateadjusted') {
+        
+        value <- filter(battlerites_df_prefilter, Battlerites == br_set)$Win_Rate
+        
+      } else {
+        
+        value <- filter(battlerites_df_prefilter, Battlerites == br_set)$Pick_Rate
+        
+      }
+      
+      return(value)
+      
+    }
     
+      if (input_measure != 'pickrateadjusted') {
+      
     for (battlerite in c(names(filtered_data)[76:length(names(filtered_data))])) {
+      
+      
       
       pre_agg_battlerites1 <- pre_agg(filtered_data,
                                       input_measure,
-                                      battlerite)
+                                      battlerite,
+                                      FALSE)
       
       var <- as.name(battlerite)
       
@@ -3470,39 +3594,139 @@ server <- function(input, output) {
         ungroup() %>%
         select(!!var, Game_Won) %>%
         group_by(!!var) %>%
-        summarize(Win_Rate = round(mean(Game_Won)*100, 2))
+        summarize(Win_Rate = round(mean(Game_Won)*100, 2),
+                  Pick_Rate = round(n()/Champion_Pick_Size()*100,2),
+                  Sample_Size = n())
       
       Battlerites <- c(Battlerites, names(battlerites1_df)[1])
       Win_Rate <- c(Win_Rate, battlerites1_df$Win_Rate)
+      Pick_Rate <- c(Pick_Rate, battlerites1_df$Pick_Rate)
+      Sample_Size <- c(Sample_Size, battlerites1_df$Sample_Size)
+      
+    } 
+        
+        } else {
+
+        data <- filtered_data %>%
+          group_by(Game_ID, User_ID, Battlerites) %>%
+          summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0)) %>%
+          ungroup() %>%
+          group_by(User_ID, Battlerites) %>%
+          summarize(Num_Picks = n()) %>%
+          arrange(User_ID, desc(Num_Picks)) %>%
+          distinct(User_ID, .keep_all = TRUE) %>%
+          separate(Battlerites, into = c('Battlerite 1', 'Battlerite 2', 'Battlerite 3', 'Battlerite 4', 'Battlerite 5'),
+                   sep = ", ")
+          
+        Cdf <- data
+
+        #Slice Cdf to include only Battlerite columns
+        Cdf2 <- Cdf[, c('Battlerite 1', 'Battlerite 2', 'Battlerite 3', 'Battlerite 4', 'Battlerite 5')]
+        
+        #Convert categories to indicator variables
+        Cdf3 <- dummy_cols(Cdf2)
+        
+        #Initial column names without Battlerite 1, Battlerite 2, etc
+        init_colnames <- names(Cdf3)[6:length(names(Cdf3))]
+        
+        #Subset to not include Battlerite 1, Battlerite 2 columns
+        Cdf3 <- Cdf3[, init_colnames]
+        
+        #Rename columns to remove prefix introduced by dummy_cols
+        names(Cdf3) <- str_replace(init_colnames, paste0(names(Cdf2)[1] , '_'), replacement = '')
+        names(Cdf3) <- str_replace(names(Cdf3), paste0(names(Cdf2)[2] , '_'), replacement = '')
+        names(Cdf3) <- str_replace(names(Cdf3), paste0(names(Cdf2)[3] , '_'), replacement = '')
+        names(Cdf3) <- str_replace(names(Cdf3), paste0(names(Cdf2)[4] , '_'), replacement = '')
+        names(Cdf3) <- str_replace(names(Cdf3), paste0(names(Cdf2)[5] , '_'), replacement = '')
+        
+        if (length(Cdf3) != 5) {
+        
+        #Convert character variables to numeric to apply rowsums
+        Cdf3 <- sapply(Cdf3, as.numeric)  
+          
+        #Group by same Battlerite name and have final unique set of battlerite choices as indicator variables
+        Cdf3 <- t(rowsum(t(Cdf3), group = colnames(Cdf3)))
+        
+        }
+        
+        Cdf3 <- data.frame(Cdf3)
+        names(Cdf3) <- str_replace(names(Cdf3), '\\.', replacement = ' ')
+        
+        #Remove the current Battlerite 1, Battlerite 2, etc columns
+        Cdf <- Cdf[, !(names(Cdf) %in% c('Battlerite 1', 'Battlerite 2', 'Battlerite 3', 'Battlerite 4', 'Battlerite 5'))]
+        
+        #Attach new Battlerite columns (Some weird bug happening required to use for loop method to combine columns)
+        for (i in 1:length(names(Cdf3))) {
+          
+          Cdf[, names(Cdf3)[i]] <- Cdf3[, i]
+          
+        }
+      
+        for (battlerite in c(names(Cdf)[3:length(names(Cdf))])) {
+          
+          if (battlerite %in% filtered_battlerites) {
+            
+            next
+            
+          }
+          
+          var <- as.name(battlerite)
+          
+          br_filter <- filter(Cdf, !!var == 1)
+          
+          battlerites1_df <- br_filter %>%
+            group_by(!!var) %>%
+            summarize(Pick_Rate = round(n()/length(unique(Cdf$User_ID))*100,2),
+                      Sample_Size = n())
+          
+          Battlerites <- c(Battlerites, names(battlerites1_df)[1])
+          Pick_Rate <- c(Pick_Rate, battlerites1_df$Pick_Rate)
+          Sample_Size <- c(Sample_Size, battlerites1_df$Sample_Size)
+        
+        
+        }
+        
+        }
+
+      
+    if (input_measure != 'pickrateadjusted') {
+    
+    br_winrates <- data.frame(Battlerites, Win_Rate, Pick_Rate, Sample_Size, stringsAsFactors = TRUE)
+    
+    } else {
+      
+      br_winrates <- data.frame(Battlerites, Pick_Rate, Sample_Size, stringsAsFactors = TRUE)
       
     }
     
-    br_winrates <- data.frame(Battlerites, Win_Rate, stringsAsFactors = TRUE)
-    br_winrates <- br_winrates %>%
-      mutate(Battlerites = fct_reorder(Battlerites, Win_Rate))
+    if (input_measure == 'winrate' | input_measure == 'winrateadjusted') {
+      
+      br_winrates <- mutate(br_winrates, Battlerites = fct_reorder(Battlerites, Win_Rate))
+      
+    } else {
+      
+      br_winrates <- mutate(br_winrates, Battlerites = fct_reorder(Battlerites, Pick_Rate))
+      
+    }
+    
+    
     br_crosswalk$Value <- factor(br_crosswalk$Value, levels = levels(br_winrates$Battlerites))
     
-    brtypes <- inner_join(x = br_winrates, y = br_crosswalk, by = c('Battlerites' = 'Value'))[-3]
+    if (input$measure != 'pickrateadjusted') {
+    
+    brtypes <- inner_join(x = br_winrates, y = br_crosswalk, by = c('Battlerites' = 'Value'))[-5]
+    
+    } else {
+      
+      brtypes <- inner_join(x = br_winrates, y = br_crosswalk, by = c('Battlerites' = 'Value'))[-4]
+      
+    }
+    
     brtypes$`Battlerite Type` <- factor(brtypes$`Battlerite Type`, levels = c('Control', 'Defense',
                                                                               'Mobility', 'Offense',
                                                                               'Support', 'Utility', 'Mixed'))
     
     return(brtypes)
-    
-    } else {
-      
-      pre_agg_df <- filtered_data %>%
-        select(Game_ID, User_ID, Round_Won) %>%
-        group_by(Game_ID, User_ID) %>%
-        summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
-      
-      win <- round(mean(pre_agg_df$Game_Won)*100, 2)
-      
-      return(win)
-      
-
-    }
-
 
     
   }
@@ -3512,7 +3736,8 @@ server <- function(input, output) {
     
     req(input$champion != 'None')
     
-    create_battlerites_agg(filtered_data(), input$measure, filtered_Battlerites$battlerites)
+    create_battlerites_agg(filtered_data(), input$measure, filtered_Battlerites$battlerites, 
+                           Battlerites_df_prefilter())
     
   })
   
@@ -3548,18 +3773,28 @@ server <- function(input, output) {
   )
   
   
-  create_battlerites_barplot <- function(agg_df) {
+  create_battlerites_barplot <- function(agg_df, measure) {
 
     Colors <- setNames(c('#FF4FCE', '#A8FF47', '#FFB800', '#FF2A1C', '#00FFE9', '#0095FF', '#BBFFFC'),
                        levels(agg_df$`Battlerite Type`))
     
     Colors_subset <- Colors[as.vector(agg_df$`Battlerite Type`)]
     
-    bar <- ggplot(data = agg_df, aes(x = Battlerites, y = Win_Rate, fill = `Battlerite Type`)) +
-      geom_bar(width = 1, stat = 'identity') +
+    if (measure == 'winrate' | measure == 'winrateadjusted') {
+      
+      bar <- ggplot(data = agg_df, aes(x = Battlerites, y = Win_Rate, fill = `Battlerite Type`)) +
+        ylab('Win Rate')
+      
+    } else {
+      
+      bar <- ggplot(data = agg_df, aes(x = Battlerites, y = Pick_Rate, fill = `Battlerite Type`)) +
+        ylab('Pick Rate')
+      
+    }
+    
+    bar <- bar + geom_bar(width = 1, stat = 'identity') +
       coord_flip() +
       scale_fill_manual(values = Colors_subset) +
-      ylab('Win Rate') +
       xlab('Battlerites') +
       theme(legend.position = 'none')
     
@@ -3613,6 +3848,8 @@ server <- function(input, output) {
         
       } else {
         
+        if (input$measure == 'winrate' | input$measure == 'winrateadjusted') {
+        
         HTML(paste0('<font size = "2">Current Battlerite Selection: <b>',
                     filtered_Battlerites$battlerites[1],
                     ', ',
@@ -3623,11 +3860,30 @@ server <- function(input, output) {
                     filtered_Battlerites$battlerites[4],
                     ', ',
                     filtered_Battlerites$battlerites[5],
-                    ' </b>and the win rate is ',
+                    ' </b>and the overall win rate is ',
                     battlerites_agg1(),
                     ' percent.</font>'))
         
-      }
+        } else {
+          
+          HTML(paste0('<font size = "2">Current Battlerite Selection: <b>',
+                      filtered_Battlerites$battlerites[1],
+                      ', ',
+                      filtered_Battlerites$battlerites[2],
+                      ', ',
+                      filtered_Battlerites$battlerites[3],
+                      ', ',
+                      filtered_Battlerites$battlerites[4],
+                      ', ',
+                      filtered_Battlerites$battlerites[5],
+                      ' </b>and the overall pick rate is ',
+                      battlerites_agg1(),
+                      ' percent.</font>'))
+          
+        }
+        
+        
+        }
       
     }
     
@@ -3642,11 +3898,11 @@ server <- function(input, output) {
     req(input$champion != 'None')
     if(is.null(filtered_Battlerites$battlerites)) {
       
-    create_battlerites_barplot(battlerites_agg1())
+    create_battlerites_barplot(battlerites_agg1(), input$measure)
     
       } else if (length(filtered_Battlerites$battlerites) < 5) {
       
-      create_battlerites_barplot(battlerites_agg1())
+      create_battlerites_barplot(battlerites_agg1(), input$measure)
       
     }
 
@@ -3695,52 +3951,77 @@ server <- function(input, output) {
   
   #Best overall set of 5 battlerites
   
-  pre_agg_battlerites <- reactive({pre_agg(filtered_data(),
-                                           input$measure,
-                                           'Battlerites')})
-  
-  Battlerites_df <- reactive({
+  pre_agg_battlerites <- reactive({
     
-    if (input$measure == 'winrate' |
-        input$measure == 'winrateadjusted') {
+    
+    data <- pre_agg(filtered_data2(),
+                    input$measure,
+                    'Battlerites',
+                    TRUE)
+    
+    })
+
+  
+  
+  Battlerites_df_prefilter <- reactive({
+    
+    if (input$measure != 'pickrateadjusted') {
       
       data <- pre_agg_battlerites() %>%
         ungroup() %>%
         select(Battlerites, Game_Won) %>%
         group_by(Battlerites) %>%
-        summarize(Win_Rate = mean(Game_Won),
-                  Count = n()) %>%
-        mutate(Win_Rate = round(Win_Rate*100,2)) %>%
-        arrange(desc(Win_Rate))
+        summarize(Win_Rate = round(mean(Game_Won)*100, 2),
+                  Pick_Rate = round(n()/Baseline_Champion_Pick_Size()*100, 2),
+                  Sample_Size = n())
       
-      data2 <- data %>%
-        filter(Count >= 3)
+    } else {
+      
+      data <- pre_agg_battlerites()
+      data
+      
+    }
+    
+    if (input$measure == 'winrate' | input$measure == 'winrateadjusted') {
+      
+      data <- arrange(data, desc(Win_Rate))
+      
+    } else {
+      
+      data <- arrange(data, desc(Pick_Rate))
+      
+    }
+    
+    data
+    
+  })
+  
+  Battlerites_df <- reactive ({
+      
+      data2 <- Battlerites_df_prefilter() %>%
+        filter(Sample_Size >= 3)
       
       if (dim(data2)[1] == 0) {
         
-        data2 <- data %>%
-          filter(Count >= 2)
+        data2 <- Battlerites_df_prefilter() %>%
+          filter(Sample_Size >= 2)
         
         if(dim(data2)[1] == 0) {
           
-          data2 <- data
+          data2 <- Battlerites_df_prefilter()
           
         }
-        
+      
+      
       }
       
-     
-      
       data2
-    }
-    
-    
 
-    
-    
-    })
-
+  })
+      
   output$BestOverallBattlerites <- renderUI({
+    
+    if (input$measure == 'winrate' | input$measure == 'winrateadjusted') {
 
 
     HTML(paste0('<font size = "2"> The best overall battlerites for ',
@@ -3750,8 +4031,23 @@ server <- function(input, output) {
                 '</b> with a win rate of ',
                 head(Battlerites_df(), 1)$Win_Rate,
                 ' percent and has ',
-                head(Battlerites_df(), 1)$Count,
+                head(Battlerites_df(), 1)$Sample_Size,
                 ' observations.</font>'))
+      
+    } else {
+      
+      HTML(paste0('<font size = "2"> The most popular battlerites for ',
+                  input$champion,
+                  ' is <b>',
+                  head(Battlerites_df(), 1)$Battlerites,
+                  '</b> with a pick rate of ',
+                  head(Battlerites_df(), 1)$Pick_Rate,
+                  ' percent and has ',
+                  head(Battlerites_df(), 1)$Sample_Size,
+                  ' observations.</font>'))
+      
+      
+    }
     
   })
   

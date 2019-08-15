@@ -458,8 +458,14 @@ ui <- navbarPage('Navbar',
                           fluidRow(
                             column(width = 12,
                                    div(DT::dataTableOutput('Players'), style = 'font-size:75%'),
+                                   actionButton(inputId = 'filterPlayer',
+                                                label = 'Filter'),
+                                   actionButton(inputId = 'unfilterPlayer',
+                                                label = 'Unfilter'),
                                    div(DT::dataTableOutput('Players_Game'), style = "font-size:75%"),
-                                   div(DT::dataTableOutput('Players_Round'), style = "font-size:75%")
+                                   div(DT::dataTableOutput('Players_Round'), style = "font-size:75%"),
+                                   div(DT::dataTableOutput('Round_Stats'), style = "font-size:75%"),
+                                   div(DT::dataTableOutput('Player_Information'), style = "font-size:75%")
                             )
                           )
                  )
@@ -482,7 +488,7 @@ server <- function(input, output) {
                                    filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
                                    filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
                                    filtered_playertype, filtered_date, filtered_battlerites, filtered_ping,
-                                   calc_pick_size) {
+                                   calc_pick_size, filter_player, player_selection) {
     #Only include if have selected a champion
     req(input_champion != 'None')
     
@@ -569,9 +575,13 @@ server <- function(input, output) {
       
     #Filter on Ping
     if (filtered_ping != -1) {
-      test <- 1
       data <- filter(data, Ping %in% filtered_ping)
     }
+    
+    if (filter_player != 0) {
+      data <- filter(data, User_ID %in% player_selection)
+    }
+    
       
       if (calc_pick_size) {
         
@@ -1291,6 +1301,11 @@ server <- function(input, output) {
   filtered_Championtime <- reactiveVal(0)
   filtered_Totaltime <- reactiveVal(0)
   filtered_Ping <- reactiveVal(-1)
+  player_selection <- reactiveVal(0)
+  filter_player <- reactiveVal(0)
+  game_selection <- reactiveVal(0)
+  round_selection <- reactiveVal(-1)
+  round_player_selection <- reactiveVal(0)
   
   #Find total number of games played for each user-champion to compute pick rate adjusted
   User_Games_Played <- reactive({
@@ -1392,7 +1407,9 @@ server <- function(input, output) {
                                                   filtered_Date(),
                                                   filtered_Battlerites$battlerites,
                                                   filtered_Ping(),
-                                                  FALSE
+                                                  FALSE,
+                                                  filter_player(),
+                                                  player_selection()
   )})
   
   #Filtered data without filters on battlerites to calculate champion pick size
@@ -1416,7 +1433,9 @@ server <- function(input, output) {
                                                    filtered_Date(),
                                                    filtered_Battlerites$battlerites,
                                                    filtered_Ping(),
-                                                   TRUE
+                                                   TRUE,
+                                                   filter_player(),
+                                                   player_selection()
   )})
   
  
@@ -1446,6 +1465,11 @@ server <- function(input, output) {
       filtered_Championtime(0)
       filtered_Totaltime(0)
       filtered_Ping(-1)
+      player_selection(0)
+      filter_player(0)
+      game_selection(0)
+      round_selection(-1)
+      round_player_selection(0)
       
       
     }
@@ -4050,6 +4074,239 @@ server <- function(input, output) {
     }
     
   })
+  
+#################  
+###PLAYER DATA###
+#################
+  
+  #Player Table
+  #Including User_ID and Name since there are some names with foreign characters that may not be parsed correctly
+  player_agg <- reactive({
+    
+    req(!is.null(filtered_data()))
+    
+    data <- filtered_data() %>%
+      group_by(Game_ID, User_ID, Name) %>%
+      summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0)) %>%
+      ungroup() %>%
+      group_by(User_ID, Name) %>%
+      summarize(Champion_Win_Rate = round(mean(Game_Won)*100, 2),
+                Num_Games = n()) 
+    
+    data <- inner_join(x = data, y = User_Total_Games_df, by = c('User_ID' = 'User_ID')) %>%
+      mutate(Pick_Rate = round(Num_Games/Total_Games*100,2)) %>%
+      select(-Num_Games)
+    
+    data
+
+  })
+  
+  output$Players <- DT::renderDataTable(expr = {
+    
+    dat <- datatable(player_agg(), selection = list(mode = 'single', target = 'cell'),
+                     options = list(searching = TRUE, paging = TRUE),
+                     callback = JS(gsub("\n", "", paste0("table.on('click.dt', 'td', function() {
+                                                         var row_=table.cell(this).index().row;
+                                                         var col=table.cell(this).index().column;
+                                                         var rnd= Math.random();
+                                                         var data = [row_, col, rnd];
+                                                         Shiny.onInputChange(", "'PlayerDataRow'", ",data);
+  });"))))
+    
+    dat
+    
+  })
+  
+  #Drill down Player data observe event
+  observeEvent(
+    eventExpr = input$PlayerDataRow,
+    handlerExpr = {
+      
+      row <- input$Players_cell_clicked
+      selected_player <- player_agg()[row$row, 'User_ID']$User_ID
+      player_selection(selected_player)
+      
+      game_selection(0)
+      round_selection(-1)
+      round_player_selection(0)
+      
+    }
+  )
+  
+  #Filter data on selected player button
+  observeEvent(
+    eventExpr = input$filterPlayer,
+    handlerExpr = {
+      
+      filter_player(1)
+      
+    }
+  ) 
+  
+  #Unfilter button
+  observeEvent(
+    eventExpr = input$unfilterPlayer,
+    handlerExpr = {
+      
+      filter_player(0)
+      
+    }
+  )
+  
+
+  #Player Games Table
+  player_games <- reactive({
+    
+    req(player_selection() != 0)
+    
+    data <- filter(filtered_data(), User_ID %in% player_selection()) %>%
+      group_by(Game_ID, Server_Type, Ranking_Type, Map, Region, Date) %>%
+      summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0))
+    data
+    
+  })
+  
+  output$Players_Game <- DT::renderDataTable(expr = {
+    
+    dat <- datatable(player_games(), selection = list(mode = 'single', target = 'cell'),
+                     options = list(searching = TRUE, paging = TRUE),
+                     callback = JS(gsub("\n", "", paste0("table.on('click.dt', 'td', function() {
+                                                         var row_=table.cell(this).index().row;
+                                                         var col=table.cell(this).index().column;
+                                                         var rnd= Math.random();
+                                                         var data = [row_, col, rnd];
+                                                         Shiny.onInputChange(", "'PlayerGamesRow'", ",data);
+  });"))))
+    
+    dat
+    
+})
+  
+  #Drill down Player Games observe event
+  observeEvent(
+    eventExpr = input$PlayerGamesRow,
+    handlerExpr = {
+      
+      row <- input$Players_Game_cell_clicked
+      selected_game <- player_games()[row$row, 'Game_ID']$Game_ID
+      game_selection(selected_game)
+
+      round_selection(-1)
+      round_player_selection(0)
+      
+    }
+  )
+  
+  
+  #Player Game specific data round level
+  
+  filtered_game_df <- reactive({
+    req(game_selection() != 0)
+    
+    data <- filter(df, Game_ID %in% game_selection())
+    data
+    
+  })
+  
+  player_rounds <- reactive({
+    
+    req(game_selection() != 0)
+    
+    data <- filtered_game_df() %>%
+      select(Round, User_ID, Name, Champion, Round_Won, Highest_Score,
+             Left_During_Round, User_Leave_Type, Forfeited,
+             First_Orb, Queue_Time)
+    data
+    
+  })
+  
+  output$Players_Round <- DT::renderDataTable(expr = {
+    
+    dat <- datatable(player_rounds(), selection = list(mode = 'single', target = 'cell'),
+                     options = list(searching = FALSE, paging = FALSE),
+                     callback = JS(gsub("\n", "", paste0("table.on('click.dt', 'td', function() {
+                                                         var row_=table.cell(this).index().row;
+                                                         var col=table.cell(this).index().column;
+                                                         var rnd= Math.random();
+                                                         var data = [row_, col, rnd];
+                                                         Shiny.onInputChange(", "'PlayerRoundRow'", ",data);
+  });")))) %>%
+      
+      formatStyle('User_ID', target = 'row',
+                  backgroundColor = styleEqual(c(player_selection()),
+                                               c('#D55E00')))
+    
+    
+    dat
+    
+})
+  
+  #Drill down specific player within round observe event
+  observeEvent(
+    eventExpr = input$PlayerRoundRow,
+    handlerExpr = {
+      
+      row <- input$Players_Round_cell_clicked
+      selected_round <- player_rounds()[row$row, 'Round']$Round
+      round_selection(selected_round)
+      selected_player <- player_rounds()[row$row, 'User_ID']$User_ID
+      round_player_selection(selected_player)
+      
+    }
+  )
+  
+  #Selected player round stats
+  round_player_df <- reactive({
+    
+    req(round_selection() != -1)
+    
+    data <- filter(filtered_game_df(), Round %in% round_selection()) %>%
+      filter(User_ID %in% round_player_selection()) 
+      
+  })
+  
+  round_stats <- reactive({
+    
+    req(!is.null(round_player_df()))
+    
+    data <- round_player_df() %>%
+      select(Kills, Deaths, Total_Score, Damage, Damage_Received, Protection, Protection_Received, Control,
+             Control_Received, Energy_Gained, Energy_Used, Num_Energy_Used, Abilities_Used,
+             Orb_Kills, Health_Shards, Energy_Shards, Time_Alive) %>%
+      gather(key = 'Measure', value = 'Value')
+    
+  })
+  
+  output$Round_Stats<- DT::renderDataTable(expr = {
+    
+    dat <- datatable(round_stats(), selection = list(mode = 'single', target = 'cell'),
+                     options = list(searching = FALSE, paging = FALSE))
+    
+    dat
+    
+})
+  
+  #Selected player information
+  player_info <- reactive({
+    
+    req(!is.null(round_player_df()))
+  
+    data <- round_player_df() %>%
+      select(League, Division, Division_Rating, Total_Time_Played, Champion_Time_Played, Battlerites,
+             Title, Outfit, Attachment, Pose, Mount) %>%
+      gather(key = 'Measure', value = 'Value')
+    
+  })
+  
+  output$Player_Information<- DT::renderDataTable(expr = {
+    
+    dat <- datatable(player_info(), selection = list(mode = 'single', target = 'cell'),
+                     options = list(searching = FALSE, paging = FALSE))
+    
+    dat
+    
+  })
+  
   
   }
 

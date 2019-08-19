@@ -214,8 +214,7 @@ ui <- navbarPage('Navbar',
                                    
                             ),
                             column(width = 4,
-                                   actionButton(inputId = 'ResetAll',
-                                                label = 'Reset Everything'))
+                                   uiOutput('Interactive_ResetButton'))
                           ),
                           
                           fluidRow(
@@ -238,8 +237,7 @@ ui <- navbarPage('Navbar',
                           fluidRow(
                             column(width = 12,
                                    div(DT::dataTableOutput('RegionGroup'), style = "font-size:75%"),
-                                   actionButton(inputId = 'unfilterRegionGroup',
-                                                label = 'Unfilter Region Group')
+                                   uiOutput(outputId = 'Interactive_Unfilter_RegionGroup')
                             )
                           ),
                           
@@ -247,8 +245,7 @@ ui <- navbarPage('Navbar',
                             column(width = 12,
                                    htmlOutput('Chosen_Region'),
                                    leafletOutput(outputId = 'Region'),
-                                   actionButton(inputId = 'unfilterRegion',
-                                                label = 'Unfilter Region')
+                                   uiOutput(outputId = 'Interactive_Unfilter_Region')
                             )
                           ),
                           
@@ -280,8 +277,7 @@ ui <- navbarPage('Navbar',
                             column(width = 6,
                                    fluidRow(
                                      htmlOutput('SelectedBattlerites'),
-                                     actionButton(inputId = 'unfilterBattlerites',
-                                                  label = 'Repick Battlerites'),
+                                     uiOutput(outputId = 'Interactive_Repick_Battlerites'),
                                      plotOutput(outputId = 'Battlerites',
                                                 dblclick = 'filterBattlerites',
                                                 hover = hoverOpts('hoverBattlerites'),
@@ -374,20 +370,20 @@ ui <- navbarPage('Navbar',
                             column(width = 6,
                                    
                                    fluidRow(
-                                     column(width = 3,
+                                     column(width = 6,
                                             htmlOutput('BestCompsLabel'),
                                             div(tableOutput('BestComps'), style = "font-size:80%")),
-                                     column(width = 3, offset = 3,
+                                     column(width = 6,
                                             htmlOutput('WorstCompsLabel'),
                                             div(tableOutput('WorstComps'), style = "font-size:80%"))
                                    ),
                                    fluidRow(htmlOutput('BestAllyRoles')),
                                    
                                    fluidRow(
-                                     column(width = 3,
+                                     column(width = 6,
                                             htmlOutput('BestMatchupsLabel'),
                                             div(tableOutput('BestMatchups'), style = "font-size:80%")),
-                                     column(width = 3, offset = 3,
+                                     column(width = 6,
                                             htmlOutput('WorstMatchupsLabel'),
                                             div(tableOutput('WorstMatchups'), style = "font-size:80%"))
                                    ),
@@ -457,11 +453,10 @@ ui <- navbarPage('Navbar',
                           
                           fluidRow(
                             column(width = 12,
+                                   htmlOutput('Player_Filter_Info'),
                                    div(DT::dataTableOutput('Players'), style = 'font-size:75%'),
-                                   actionButton(inputId = 'filterPlayer',
-                                                label = 'Filter'),
-                                   actionButton(inputId = 'unfilterPlayer',
-                                                label = 'Unfilter'),
+                                   uiOutput(outputId = 'Interactive_Filter_Player'),
+                                   uiOutput(outputId = 'Interactive_Unfilter_Player'),
                                    div(DT::dataTableOutput('Players_Game'), style = "font-size:75%"),
                                    div(DT::dataTableOutput('Players_Round'), style = "font-size:75%"),
                                    div(DT::dataTableOutput('Round_Stats'), style = "font-size:75%"),
@@ -916,9 +911,180 @@ server <- function(input, output) {
     
   }
   
+  ###Dynamic Text###
+  
+  create_dynamic_text <- function(filtered_totaltime, filtered_championtime,
+                                  filtered_region, filtered_league, filtered_servertype,
+                                  filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
+                                  filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
+                                  filtered_playertype, filtered_date, filtered_battlerites, filtered_ping,
+                                  filter_player, player_selection, barplot) {
+    
+    if (filtered_totaltime != 0 | filtered_championtime != 0 | filtered_region != 0 |
+        filtered_league != 0 | filtered_servertype != 0 | filtered_map != 0 |
+        filtered_casual != 0 | filtered_mount != 0 | filtered_title != 0 |
+        filtered_avatar != 0 | filtered_outfit != 0 | filtered_attachment != 0 |
+        filtered_pose != 0 | filtered_regiongroup != 0 | filtered_playertype != 0 |
+        filtered_date != 0 | length(filtered_battlerites) > 0 | filtered_ping != -1 |
+        filter_player != 0) {
+      
+      total_filtered <- list()
+      
+      if (filtered_totaltime != 0) {
+        total_filtered <- c(total_filtered, list(c('Total_Time_Played', filtered_totaltime)))
+      }
+      
+      if (filtered_championtime != 0) {
+        total_filtered <- c(total_filtered, list(c('Champion_Time_Played', filtered_championtime)))
+      }
+      
+      if (filtered_region != 0) {
+        total_filtered <- c(total_filtered, list(c('Region', filtered_region)))
+      }
+      
+      if (filtered_league != 0) {
+        total_filtered <- c(total_filtered, list(c('League', filtered_league)))
+      }
+      
+      if (filtered_servertype != 0) {
+        total_filtered <- c(total_filtered, list(c('Server_Type', filtered_servertype)))
+      }
+      
+      if (filtered_map != 0) {
+        total_filtered <- c(total_filtered, list(c('Map', filtered_map)))
+      }
+      
+      if (filtered_casual != 0) {
+        total_filtered <- c(total_filtered, list(c('Ranking_Type', filtered_casual)))
+      }
+      
+      if (filtered_mount != 0) {
+        total_filtered <- c(total_filtered, list(c('Mount', filtered_mount)))
+      }
+      
+      if (filtered_title != 0) {
+        total_filtered <- c(total_filtered, list(c('Title', filtered_title)))
+      }
+      
+      if (filtered_avatar != 0) {
+        total_filtered <- c(total_filtered, list(c('Avatar', filtered_avatar)))
+      }
+      
+      if (filtered_outfit != 0) {
+        total_filtered <- c(total_filtered, list(c('Outfit', filtered_outfit)))
+      }
+      
+      if (filtered_attachment != 0) {
+        total_filtered <- c(total_filtered, list(c('Attachment', filtered_attachment)))
+      }
+      
+      if (filtered_pose != 0) {
+        total_filtered <- c(total_filtered, list(c('Pose', filtered_pose)))
+      }
+      
+      if (filtered_regiongroup != 0) {
+        total_filtered <- c(total_filtered, list(c('Region Group', filtered_regiongroup)))
+      }
+      
+      if (filtered_playertype != 0) {
+        total_filtered <- c(total_filtered, list(c('Player_Type', filtered_playertype)))
+      }
+      
+      if (filtered_date != 0) {
+        total_filtered <- c(total_filtered, list(c('Date', filtered_date)))
+      }
+      
+      if (length(filtered_battlerites) > 0) {
+        total_filtered <- c(total_filtered, list(c('Battlerites', filtered_battlerites)))
+      }
+      
+      if (filtered_ping != -1) {
+        total_filtered <- c(total_filtered, list(c('Ping', filtered_ping)))
+      }
+      
+      if (filter_player != 0) {
+        total_filtered <- c(total_filtered, list(c('Name', player_selection)))
+      }
+      
+      if (!is.null(total_filtered)) {
+        
+        for (x in total_filtered) {
+          
+          if (x[1] == total_filtered[[1]][1]) {
+            
+            if (x[1] == 'Battlerites') {
+              
+              if (length(filtered_battlerites) == 1) {
+                
+                txt <- paste0('Battlerite = ', filtered_battlerites)
+                
+              } else {
+                
+                txt <- paste0('Battlerites in (', filtered_battlerites, ')')
+                
+              }
+              
+            } else if (x[1] == 'Name'){
+              
+              filtered_player <- filter(player_agg(), User_ID == x[2])
+              txt <- paste0('Name = ', filtered_player$Name)
+              
+            } else {
+              
+              txt <- paste0(x[1], ' = ', x[2])
+              
+            }
+            
+          } else {
+            
+            
+            if(barplot) {
+              
+              txt <- paste0(txt, '\n')
+              
+            } else {
+              
+              txt <- paste0(txt, ' | ')
+              
+            }
+            
+            if (x[1] == 'Battlerites') {
+              
+              if (length(filtered_battlerites) == 1) {
+                
+                txt <- paste0(txt, 'Battlerite = ', filtered_battlerites)
+                
+              } else {
+                
+                txt <- paste0(txt, 'Battlerites in (', filtered_battlerites, ')')
+                
+              }
+              
+            } else if (x[1] == 'Name'){
+              
+              filtered_player <- filter(player_agg(), User_ID == x[2])
+              txt <- paste0(txt, 'Name = ', filtered_player$Name)
+              
+            } else {
+              
+              txt <- paste0(txt, x[1], ' = ', x[2])
+              
+            }
+          }
+          
+        }
+        
+        return(txt)
+      }
+      
+    } else {
+      
+      return('')
+      
+    }
+    
+  }
 
-  
-  
   ###Plots###
   
   create_region_map <- function(region_df, input_champion, region_ref, measure) {
@@ -931,7 +1097,25 @@ server <- function(input, output) {
     if (measure == 'winrate' |
         measure == 'winrateadjusted') {
     
-    
+    if (dim(region_df)[1] == 1) {
+      
+      m <- leaflet(data = region_df) %>%
+        addTiles() %>%
+        addCircleMarkers(lng = ~Longitude,
+                         lat = ~Latitude,
+                         stroke = FALSE,
+                         layerId = ~Region,
+                         color = ~pal(`Region Group`),
+                         fillOpacity = 1,
+                         radius = 10,
+                         label = paste('Server: ', region_df$Region,
+                                       ' | City: ', region_df$City,
+                                       ' | Win Rate: ', region_df$Win_Rate,
+                                       ' | Sample Size: ', region_df$Sample_Size)
+        )
+      
+    } else {
+
     m <- leaflet(data = region_df) %>%
       addTiles() %>%
       addCircleMarkers(lng = ~Longitude,
@@ -954,9 +1138,11 @@ server <- function(input, output) {
                                      ' | Win Rate: ', region_df$Win_Rate,
                                      ' | Sample Size: ', region_df$Sample_Size)
       )
-    return(m)
+    }
     
     } else {
+      
+      if (dim(region_df)[1] == 1) {
       
       m <- leaflet(data = region_df) %>%
         addTiles() %>%
@@ -966,25 +1152,87 @@ server <- function(input, output) {
                          layerId = ~Region,
                          color = ~pal(`Region Group`),
                          fillOpacity = 1,
-                         radius = ~ifelse(Pick_Rate <= quantile(region_df$Pick_Rate, 0.20), 3,
-                                          ifelse(Pick_Rate <= quantile(region_df$Pick_Rate, 0.40), 5,
-                                                 ifelse(Pick_Rate <= quantile(region_df$Pick_Rate, 0.60), 7, 
-                                                        ifelse(Pick_Rate <= quantile(region_df$Pick_Rate, 0.8), 9, 11)))),
+                         radius = ~10,
                          label = paste('Server: ', region_df$Region,
                                        ' | City: ', region_df$City,
                                        ' | Pick Rate: ', region_df$Pick_Rate,
                                        ' | Sample Size: ', region_df$Sample_Size)
         )
       
-      
+      } else {
+        
+        m <- leaflet(data = region_df) %>%
+          addTiles() %>%
+          addCircleMarkers(lng = ~Longitude,
+                           lat = ~Latitude,
+                           stroke = FALSE,
+                           layerId = ~Region,
+                           color = ~pal(`Region Group`),
+                           fillOpacity = 1,
+                           radius = ~ifelse(Pick_Rate <= quantile(region_df$Pick_Rate, 0.20), 3,
+                                            ifelse(Pick_Rate <= quantile(region_df$Pick_Rate, 0.40), 5,
+                                                   ifelse(Pick_Rate <= quantile(region_df$Pick_Rate, 0.60), 7, 
+                                                          ifelse(Pick_Rate <= quantile(region_df$Pick_Rate, 0.8), 9, 11)))),
+                           label = paste('Server: ', region_df$Region,
+                                         ' | City: ', region_df$City,
+                                         ' | Pick Rate: ', region_df$Pick_Rate,
+                                         ' | Sample Size: ', region_df$Sample_Size)
+          )
+        
+      }
       
     }
-    
+   
+    return(m)
+     
   }
   
   
-  create_region_table <- function(data, row_name) {
+  create_region_table <- function(data, row_name, input_champion, measure, filtered_totaltime, filtered_championtime,
+                                  filtered_region, filtered_league, filtered_servertype,
+                                  filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
+                                  filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
+                                  filtered_playertype, filtered_date, filtered_battlerites, filtered_ping,
+                                  filter_player, player_selection) {
     req(!is.null(data))
+    
+    if (measure == 'winrate') {
+      
+      initial_name <- paste0(input_champion, ' Win Rate Split by Region Group')
+      
+    } else if (measure == 'winrateadjusted') {
+      
+      initial_name <- paste0(input_champion, ' Win Rate (Adjusted) Split by Region Group')
+      
+    } else if (measure == 'pickrate') {
+      
+      initial_name <- paste0(input_champion, ' Region Group Pick Rate')
+      
+    } else {
+      
+      initial_name <- paste0(input_champion, ' Region Group Pick Rate (Adjusted)')
+      
+    }
+    
+    dynamic_name <- create_dynamic_text(filtered_totaltime, filtered_championtime,
+                                        filtered_region, filtered_league, filtered_servertype,
+                                        filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
+                                        filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
+                                        filtered_playertype, filtered_date, filtered_battlerites, filtered_ping,
+                                        filter_player, player_selection, barplot = FALSE)
+    
+    if (dynamic_name != '') {
+      
+      final_name <- paste0(initial_name, ' Filtered on: ', dynamic_name)
+      
+    } else {
+      
+      final_name <- initial_name
+      
+    }
+    
+    names(data)[names(data) == 'Region Group'] <- final_name
+    names(data)[names(data) == 'Win_Rate'] <- 'Win Rate (Percent)'
 
     dat <- datatable(data, selection = list(mode = 'single', target = 'cell'), options = list(searching = FALSE,
                                                                                               paging = FALSE),
@@ -995,7 +1243,7 @@ server <- function(input, output) {
                                                          var data = [row_, col, rnd];
                                                          Shiny.onInputChange(", row_name, ",data);
   });"))) ) %>%
-      formatStyle('Region Group', target = 'row',
+      formatStyle(final_name, target = 'row',
                   backgroundColor = styleEqual(c('USA', 'Europe', 'OCE', 'Asia', 'South America', 'Other'),
                                                c("#D55E00", "#56B4E9", "#009E73", "#E69F00", "#0072B2", "#F0E442")))
     
@@ -1005,19 +1253,58 @@ server <- function(input, output) {
     
 }
   
-  
-  
-  
-  
-  
-  
-  
   #Group bars by 2v2, 3v3, solo queue etc stacked
-  create_barplot <- function(agg_df, variable, measure) {
+  create_barplot <- function(agg_df, variable, measure, filtered_totaltime, filtered_championtime,
+                             filtered_region, filtered_league, filtered_servertype,
+                             filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
+                             filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
+                             filtered_playertype, filtered_date, filtered_battlerites, filtered_ping,
+                             filter_player, player_selection) {
     req(!is.null(agg_df))
 
     var <- as.name(variable)
     var2 <- var
+    
+    if (measure == 'winrate') {
+      
+      initial_title <- paste0(input$champion, ' Win Rate Split by ', variable)
+      
+    } else if (measure == 'winrateadjusted') {
+      
+      initial_title <- paste0(input$champion, ' Win Rate (Adjusted) Split by ', variable)
+      
+    } else if (measure == 'pickrate') {
+      
+      if (variable %in% c('Mount', 'Outfit', 'Attachment', 'Pose', 'Server_Type', 'Ranking_Type',
+                          'Title', 'Avatar')) {
+        initial_title <- paste0(input$champion, ' ', variable, ' Pick Rate')
+        
+      } else {
+        
+        initial_title <- paste0(input$champion, ' ', variable, ' Distribution')
+        
+      }
+      
+    } else {
+      
+      if (variable %in% c('Mount', 'Outfit', 'Attachment', 'Pose', 'Server_Type', 'Ranking_Type',
+                          'Title', 'Avatar')) {
+        initial_title <- paste0(input$champion, ' ', variable, ' Pick Rate (Adjusted)')
+        
+      } else {
+        
+        initial_title <- paste0(input$champion, ' ', variable, ' Distribution (Adjusted)')
+        
+      }
+
+    }
+    
+    sub_title <- create_dynamic_text(filtered_totaltime, filtered_championtime,
+                                       filtered_region, filtered_league, filtered_servertype,
+                                       filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
+                                       filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
+                                       filtered_playertype, filtered_date, filtered_battlerites, filtered_ping,
+                                       filter_player, player_selection, barplot = TRUE)
     
     if (variable %in% c('League', 'Server_Type', 'Player_Type', 'Map', 'Ranking_Type', 'Pose',
                         'Mount', 'Outfit', 'Attachment', 'Ping', 'Total_Time_Played', 'Champion_Time_Played')) {
@@ -1112,19 +1399,19 @@ server <- function(input, output) {
       
       bar <- ggplot(data = agg_df, aes(x = !!var, y = Win_Rate, fill = !!var2)) +
         geom_bar(width = 1, stat = 'identity') +
-        ylab('Win Rate') +
+        ylab('Win Rate (Percent)') +
         xlab(variable) +
         scale_fill_manual(values = Colors_subset) +
-        theme(legend.position = 'none')
+        theme(legend.position = 'none', plot.title = element_text(size = 16, face = 'bold'))
       
       } else {
         
         bar <- ggplot(data = agg_df, aes(x = !!var, y = Pick_Rate, fill = !!var2)) +
           geom_bar(width = 1, stat = 'identity') +
-          ylab('Pick Rate') +
+          ylab('Pick Rate (Percent)') +
           xlab(variable) +
           scale_fill_manual(values = Colors_subset) +
-          theme(legend.position = 'none')
+          theme(legend.position = 'none', plot.title = element_text(size = 16, face = 'bold'))
         
       }
       
@@ -1140,15 +1427,18 @@ server <- function(input, output) {
         
         bar <- ggplot(data = agg_df, aes(x = !!var, y = Win_Rate)) +
           geom_bar(width = 1, stat = 'identity', fill = Color) +
-          ylab('Win Rate') +
-          xlab(variable)
+          ylab('Win Rate (Percent)') +
+          xlab(variable)+
+          theme(plot.title = element_text(size = 16, face = 'bold'))
+        
+       
         } else {
           
           bar <- ggplot(data = agg_df, aes(x = !!var, y = Pick_Rate)) +
             geom_bar(width = 1, stat = 'identity', fill = Color) +
-            ylab('Pick Rate') +
-            xlab(variable)
-          
+            ylab('Pick Rate (Percent)') +
+            xlab(variable)+
+            theme(plot.title = element_text(size = 16, face = 'bold'))
           
         }
         
@@ -1162,6 +1452,20 @@ server <- function(input, output) {
       
     }
     
+    if (sub_title == '') {
+      
+      bar <- bar + ggtitle(initial_title, subtitle = waiver())
+      
+    } else {
+      
+      final_title <- paste0(initial_title, ' Filtered on:')
+      
+      bar <- bar + ggtitle(final_title, subtitle = sub_title)
+      
+    }
+    
+    
+    
     return(bar)
     
   }
@@ -1169,13 +1473,50 @@ server <- function(input, output) {
   
   ### Labels ###
   
-  create_region_label <- function(filtered_region) {
+  create_region_label <- function(measure, filtered_totaltime, filtered_championtime,
+                                  filtered_region, filtered_league, filtered_servertype,
+                                  filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
+                                  filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
+                                  filtered_playertype, filtered_date, filtered_battlerites, filtered_ping,
+                                  filter_player, player_selection) {
     
-    req(filtered_region != 0)
+    if (measure == 'winrate') {
+      
+      txt <- paste0(input$champion, ' Win Rate Split by Region')
+      
+    } else if (measure == 'winrateadjusted') {
+      
+      txt <- paste0(input$champion, ' Win Rate (Adjusted) Split by Region')
+      
+    } else if (measure == 'pickrate') {
+      
+      txt <- paste0(input$champion, ' Region Pick Rate')
+      
+    } else {
+      
+      txt <- paste0(input$champion, ' Region Pick Rate (Adjusted)')
+      
+    }
     
-    string <- HTML(paste0('<font size = "5">You have selected ', filtered_region, '</font>'))
+    new_txt <- create_dynamic_text(filtered_totaltime, filtered_championtime,
+                                   filtered_region, filtered_league, filtered_servertype,
+                                   filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
+                                   filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
+                                   filtered_playertype, filtered_date, filtered_battlerites, filtered_ping,
+                                   filter_player, player_selection, barplot = FALSE)
     
-    return(string)
+    if (new_txt != '') {
+      
+      txt <- paste0('<font size = "4">', txt, ' Filtered on: </font>')
+      txt <- paste0(txt, '<font size = "2">' , new_txt, '</font>')
+      
+    } else {
+      
+      txt <- paste0('<font size = "4">', txt, '</font>')
+      
+    }
+      
+    return(HTML(txt))
     
   }
   
@@ -1513,7 +1854,8 @@ server <- function(input, output) {
         filtered_Mount() == 0 & filtered_Title() == 0 & filtered_Avatar() == 0 &
         filtered_Outfit() == 0 & filtered_Attachment() == 0 & filtered_Pose() == 0 &
         filtered_RegionGroup() == 0 & filtered_PlayerType() == 0 & filtered_Date() == 0 &
-        filtered_Championtime() == 0 & filtered_Totaltime() == 0 & filtered_Ping() == 0)
+        filtered_Championtime() == 0 & filtered_Totaltime() == 0 & filtered_Ping() == -1,
+        filter_player() == 0)
     
     
     data <- filtered_data() %>%
@@ -1563,7 +1905,8 @@ server <- function(input, output) {
           filtered_Mount() == 0 & filtered_Title() == 0 & filtered_Avatar() == 0 &
           filtered_Outfit() == 0 & filtered_Attachment() == 0 & filtered_Pose() == 0 &
           filtered_RegionGroup() == 0 & filtered_PlayerType() == 0 & filtered_Date() == 0 &
-          filtered_Championtime() == 0 & filtered_Totaltime() == 0 & filtered_Ping() == 0) 
+          filtered_Championtime() == 0 & filtered_Totaltime() == 0 & filtered_Ping() == -1 &
+          filter_player() == 0) 
     
     if (input$measure == 'winrate' |
         input$measure == 'winrateadjusted') {
@@ -1606,6 +1949,71 @@ server <- function(input, output) {
     
   })
   
+  ################################
+  ###INTERACTIVE ACTION BUTTONS###
+  ################################
+  
+  output$Interactive_ResetButton <- renderUI({
+    
+    req(input$champion != 'None')
+    
+    req(filtered_Region() != 0 | length(filtered_Battlerites$battlerites) != 0 | filtered_League() != 0 |
+          filtered_Servertype() != 0 | filtered_Map() != 0 | filtered_Casual() != 0 |
+          filtered_Mount() != 0 | filtered_Title() != 0 | filtered_Avatar() != 0 |
+          filtered_Outfit() != 0 | filtered_Attachment() != 0 | filtered_Pose() != 0 |
+          filtered_RegionGroup() != 0 | filtered_PlayerType() != 0 | filtered_Date() != 0 |
+          filtered_Championtime() != 0 | filtered_Totaltime() != 0 | filtered_Ping() != -1 |
+          filter_player() != 0)
+    
+    actionButton(inputId = 'ResetAll',
+                 label = 'Reset All Filters')
+    
+  })
+  
+  
+  output$Interactive_Unfilter_RegionGroup <- renderUI({
+    
+    req(filtered_RegionGroup() != 0)
+    
+    actionButton(inputId = 'unfilterRegionGroup',
+                 label = 'Unfilter Region Group')
+  })
+  
+  output$Interactive_Unfilter_Region <- renderUI({
+    
+    req(filtered_Region() != 0)
+    
+    actionButton(inputId = 'unfilterRegion',
+                 label = 'Unfilter Region')
+  })
+  
+  output$Interactive_Filter_Player <- renderUI({
+    
+    req(player_selection() != 0)
+    req(filter_player() == 0)
+    
+    actionButton(inputId = 'filterPlayer',
+                 label = 'Filter Selected Player')
+  })
+  
+  output$Interactive_Unfilter_Player <- renderUI({
+    
+    req(filter_player() != 0)
+    
+    actionButton(inputId = 'unfilterPlayer',
+                 label = 'Unfilter Selected Player')
+  })
+  
+  output$Interactive_Repick_Battlerites <- renderUI({
+    
+    req(length(filtered_Battlerites$battlerites) > 0) 
+    
+    actionButton(inputId = 'unfilterBattlerites',
+                 label = 'Repick Battlerites')
+    
+  })
+  
+  
   ############
   ###REGION###
   ############
@@ -1642,7 +2050,19 @@ server <- function(input, output) {
   })
   
   #Filtered region label
-  output$Chosen_Region <- renderUI({create_region_label(filtered_Region())})
+  output$Chosen_Region <- renderUI({
+    
+    req(input$champion != 'None')
+    
+    create_region_label(input$measure, filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                                                        filtered_League(), filtered_Servertype(), filtered_Map(),
+                                                        filtered_Casual(), filtered_Mount(), filtered_Title(),
+                                                        filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                                                        filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                                                        filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                                                        filter_player(), player_selection())
+    
+    })
   
   ##################
   ###REGION GROUP###
@@ -1691,7 +2111,14 @@ server <- function(input, output) {
   
   output$RegionGroup <- DT::renderDataTable(expr = {
     
-    create_region_table(RegionGroup_df(), "'RegionGroupRow'")
+    create_region_table(RegionGroup_df(), "'RegionGroupRow'", input$champion, input$measure,
+                        filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                        filtered_League(), filtered_Servertype(), filtered_Map(),
+                        filtered_Casual(), filtered_Mount(), filtered_Title(),
+                        filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                        filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                        filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                        filter_player(), player_selection())
     
   })
   
@@ -1732,7 +2159,14 @@ server <- function(input, output) {
   
   output$TotalTime <- renderPlot({
     
-    create_barplot(Totaltime_df(), 'Total_Time_Played', input$measure)
+    create_barplot(Totaltime_df(), 'Total_Time_Played', input$measure,
+                   filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                   filtered_League(), filtered_Servertype(), filtered_Map(),
+                   filtered_Casual(), filtered_Mount(), filtered_Title(),
+                   filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                   filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                   filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                   filter_player(), player_selection())
     
   })
   
@@ -1790,7 +2224,14 @@ server <- function(input, output) {
   
   output$ChampionTime <- renderPlot({
     
-    create_barplot(Championtime_df(), 'Champion_Time_Played', input$measure)
+    create_barplot(Championtime_df(), 'Champion_Time_Played', input$measure,
+                   filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                   filtered_League(), filtered_Servertype(), filtered_Map(),
+                   filtered_Casual(), filtered_Mount(), filtered_Title(),
+                   filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                   filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                   filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                   filter_player(), player_selection())
     
   })
   
@@ -1851,7 +2292,14 @@ server <- function(input, output) {
   output$League <- renderPlot({
     
     req(input$champion != 'None')
-    create_barplot(League_df(), 'League', input$measure)})
+    create_barplot(League_df(), 'League', input$measure,
+                   filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                   filtered_League(), filtered_Servertype(), filtered_Map(),
+                   filtered_Casual(), filtered_Mount(), filtered_Title(),
+                   filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                   filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                   filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                   filter_player(), player_selection())})
   
   #League hover label
   output$League_tooltip <- renderUI({
@@ -1908,7 +2356,14 @@ server <- function(input, output) {
   
   output$PlayerType <- renderPlot({
     
-    create_barplot(PlayerType_df(), 'Player_Type', input$measure)
+    create_barplot(PlayerType_df(), 'Player_Type', input$measure,
+                   filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                   filtered_League(), filtered_Servertype(), filtered_Map(),
+                   filtered_Casual(), filtered_Mount(), filtered_Title(),
+                   filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                   filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                   filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                   filter_player(), player_selection())
     
   })
   
@@ -1967,7 +2422,14 @@ server <- function(input, output) {
   
   output$Date <- renderPlot({
     
-    create_barplot(date_df(), 'Date', input$measure)
+    create_barplot(date_df(), 'Date', input$measure,
+                   filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                   filtered_League(), filtered_Servertype(), filtered_Map(),
+                   filtered_Casual(), filtered_Mount(), filtered_Title(),
+                   filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                   filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                   filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                   filter_player(), player_selection())
     
   })
   
@@ -2031,7 +2493,14 @@ server <- function(input, output) {
   
   output$Ping <- renderPlot({
 
-    create_barplot(agg_ping(), 'Ping', input$measure) +
+    create_barplot(agg_ping(), 'Ping', input$measure,
+                   filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                   filtered_League(), filtered_Servertype(), filtered_Map(),
+                   filtered_Casual(), filtered_Mount(), filtered_Title(),
+                   filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                   filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                   filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                   filter_player(), player_selection()) +
       theme(axis.text.x = element_text(angle = 45, hjust = 1))
     
   })
@@ -2092,7 +2561,14 @@ server <- function(input, output) {
   
   output$ServerType <- renderPlot({
     
-    create_barplot(Servertype_df(), 'Server_Type', input$measure)
+    create_barplot(Servertype_df(), 'Server_Type', input$measure,
+                   filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                   filtered_League(), filtered_Servertype(), filtered_Map(),
+                   filtered_Casual(), filtered_Mount(), filtered_Title(),
+                   filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                   filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                   filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                   filter_player(), player_selection())
     
   })
   
@@ -2158,7 +2634,14 @@ server <- function(input, output) {
   
   output$Map <- renderPlot({
     
-    create_barplot(Map_df(), 'Map', input$measure)
+    create_barplot(Map_df(), 'Map', input$measure,
+                   filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                   filtered_League(), filtered_Servertype(), filtered_Map(),
+                   filtered_Casual(), filtered_Mount(), filtered_Title(),
+                   filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                   filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                   filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                   filter_player(), player_selection())
     
   })
   
@@ -2217,7 +2700,14 @@ server <- function(input, output) {
   
   output$Casual <- renderPlot({
     
-    create_barplot(Casual_df(), 'Ranking_Type', input$measure)
+    create_barplot(Casual_df(), 'Ranking_Type', input$measure,
+                   filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                   filtered_League(), filtered_Servertype(), filtered_Map(),
+                   filtered_Casual(), filtered_Mount(), filtered_Title(),
+                   filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                   filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                   filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                   filter_player(), player_selection())
     
   })
   
@@ -2279,7 +2769,14 @@ server <- function(input, output) {
   
   output$Avatar <- renderPlot({
     
-    create_barplot(Avatar_df(), 'Avatar', input$measure)
+    create_barplot(Avatar_df(), 'Avatar', input$measure,
+                   filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                   filtered_League(), filtered_Servertype(), filtered_Map(),
+                   filtered_Casual(), filtered_Mount(), filtered_Title(),
+                   filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                   filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                   filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                   filter_player(), player_selection())
     
   })
   
@@ -2345,7 +2842,14 @@ server <- function(input, output) {
   
   output$Title <- renderPlot({
     
-    create_barplot(Title_df(), 'Title', input$measure)
+    create_barplot(Title_df(), 'Title', input$measure,
+                   filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                   filtered_League(), filtered_Servertype(), filtered_Map(),
+                   filtered_Casual(), filtered_Mount(), filtered_Title(),
+                   filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                   filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                   filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                   filter_player(), player_selection())
     
   })
   
@@ -2384,11 +2888,18 @@ server <- function(input, output) {
                        'Outfit',
                        TRUE)
     
-    test <- 1
-    test
-    
     outfit_crosswalk$Value <- factor(outfit_crosswalk$Value, levels = levels(data$Outfit))
-    data <- inner_join(x = data, y = outfit_crosswalk, by = c('Outfit' = 'Value'))[-4]
+    
+    if (input$measure != 'pickrateadjusted') {
+      
+      data <- inner_join(x = data, y = outfit_crosswalk, by = c('Outfit' = 'Value'))[-5] 
+      
+    } else {
+      
+      data <- inner_join(x = data, y = outfit_crosswalk, by = c('Outfit' = 'Value'))[-4]
+      
+    }
+    
     data$Rarity <- factor(data$Rarity, levels = c('Common', 'Rare', 'Epic', 'Legendary'))
     data <- data[!duplicated(data$Outfit),]
     
@@ -2418,7 +2929,14 @@ server <- function(input, output) {
   
   output$Outfit <- renderPlot({
     
-    create_barplot(Outfit_df(), 'Outfit', input$measure)
+    create_barplot(Outfit_df(), 'Outfit', input$measure,
+                   filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                   filtered_League(), filtered_Servertype(), filtered_Map(),
+                   filtered_Casual(), filtered_Mount(), filtered_Title(),
+                   filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                   filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                   filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                   filter_player(), player_selection())
     
   })
   
@@ -2457,7 +2975,17 @@ server <- function(input, output) {
                        TRUE)
     
     attachment_crosswalk$Value <- factor(attachment_crosswalk$Value, levels = levels(data$Attachment))
-    data <- inner_join(x = data, y = attachment_crosswalk, by = c('Attachment' = 'Value'))[-4]
+    
+    if (input$measure != 'pickrateadjusted') {
+      
+      data <- inner_join(x = data, y = attachment_crosswalk, by = c('Attachment' = 'Value'))[-5] 
+      
+    } else {
+      
+      data <- inner_join(x = data, y = attachment_crosswalk, by = c('Attachment' = 'Value'))[-4]
+      
+    }
+    
     data$Rarity <- factor(data$Rarity, levels = c('Common', 'Rare', 'Epic', 'Legendary'))
     data <- data[!duplicated(data$Attachment),]
     
@@ -2487,7 +3015,14 @@ server <- function(input, output) {
   
   output$Attachment <- renderPlot({
     
-    create_barplot(Attachment_df(), 'Attachment', input$measure)
+    create_barplot(Attachment_df(), 'Attachment', input$measure,
+                   filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                   filtered_League(), filtered_Servertype(), filtered_Map(),
+                   filtered_Casual(), filtered_Mount(), filtered_Title(),
+                   filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                   filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                   filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                   filter_player(), player_selection())
     
   })
   
@@ -2524,9 +3059,20 @@ server <- function(input, output) {
                        TRUE)
     
     mount_crosswalk$Value <- factor(mount_crosswalk$Value, levels = levels(data$Mount))
-    data <- inner_join(x = data, y = mount_crosswalk, by = c('Mount' = 'Value'))[-4]
+    
+    if (input$measure != 'pickrateadjusted') {
+      
+      data <- inner_join(x = data, y = mount_crosswalk, by = c('Mount' = 'Value'))[-5] 
+      
+    } else {
+      
+      data <- inner_join(x = data, y = mount_crosswalk, by = c('Mount' = 'Value'))[-4]
+      
+    }
+    
     data$Rarity <- factor(data$Rarity, levels = c('Common', 'Rare', 'Epic', 'Legendary'))
     data <- data[!duplicated(data$Mount),]
+    data
     
   })
   
@@ -2554,11 +3100,18 @@ server <- function(input, output) {
   
   output$Mount <- renderPlot({
     
-    create_barplot(Mount_df(), 'Mount', input$measure)
+    create_barplot(Mount_df(), 'Mount', input$measure,
+                   filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                   filtered_League(), filtered_Servertype(), filtered_Map(),
+                   filtered_Casual(), filtered_Mount(), filtered_Title(),
+                   filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                   filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                   filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                   filter_player(), player_selection())
     
   })
   
-  #Attachment hover label
+  #Mount hover label
   output$Mount_tooltip <- renderUI({
     
     info <- create_tooltip(input$hoverMount, Mount_df(), Mount_df()$Mount,
@@ -2592,9 +3145,19 @@ server <- function(input, output) {
                        input$measure,
                        'Pose',
                        TRUE)
-
+    
     pose_crosswalk$Value <- factor(pose_crosswalk$Value, levels = levels(data$Pose))
-    data <- inner_join(x = data, y = pose_crosswalk, by = c('Pose' = 'Value'))[-4]
+    
+    if (input$measure != 'pickrateadjusted') {
+      
+      data <- inner_join(x = data, y = pose_crosswalk, by = c('Pose' = 'Value'))[-5] 
+      
+    } else {
+      
+      data <- inner_join(x = data, y = pose_crosswalk, by = c('Pose' = 'Value'))[-4]
+      
+    }
+  
     data$Rarity <- factor(data$Rarity, levels = c('Common', 'Rare', 'Epic', 'Legendary'))
     data <- data[!duplicated(data$Pose),]
     
@@ -2624,7 +3187,14 @@ server <- function(input, output) {
   
   output$Pose <- renderPlot({
     
-    create_barplot(Pose_df(), 'Pose', input$measure)
+    create_barplot(Pose_df(), 'Pose', input$measure,
+                   filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                   filtered_League(), filtered_Servertype(), filtered_Map(),
+                   filtered_Casual(), filtered_Mount(), filtered_Title(),
+                   filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                   filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                   filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                   filter_player(), player_selection())
     
   })
   
@@ -2681,11 +3251,12 @@ server <- function(input, output) {
     if (input$measure == 'winrateadjusted' |
         input$measure == 'pickrateadjusted') {
       
+      #Group by game won and user id
+      
       data <- data %>%
       ungroup() %>%
-      group_by(User_ID) %>%
-      summarize(Game_Won = mean(Game_Won),
-                Kills = mean(Kills),
+      group_by(Game_Won, User_ID) %>%
+      summarize(Kills = mean(Kills),
                 Deaths = mean(Deaths),
                 Damage = mean(Damage),
                 Damage_Received = mean(Damage_Received),
@@ -2742,6 +3313,9 @@ server <- function(input, output) {
                 Survived = mean(Survived),
                 Queue_Time = mean(Queue_Time))
 
+    
+    data
+    
   })
   
   stats_agg_lose <- reactive({
@@ -2803,25 +3377,82 @@ server <- function(input, output) {
   #For wins view and overall(when pickrate selected)
   output$StatsWinLabel <- renderUI({
     
+    req(input$champion != 'None')
+    
+    dynamic_name <- create_dynamic_text(filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                                        filtered_League(), filtered_Servertype(), filtered_Map(),
+                                        filtered_Casual(), filtered_Mount(), filtered_Title(),
+                                        filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                                        filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                                        filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                                        filter_player(), player_selection(), barplot = FALSE)
+    
     if(input$measure == 'winrate' |
           input$measure == 'winrateadjusted') {
-    
-    HTML('<font size = "2"><b><u>Average Stats Per Round For Game Wins</font></b></u>')
+      
+      initial_text <- 'Average Stats Per Round For Game Wins'
+      
+      if (dynamic_name == '') {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, '</font></b></u>')
+        
+      } else {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, ' While Filtering on: ',
+                             dynamic_name, '</font></b></u>')
+        
+      }
     
     } else {
       
-      HTML('<font size = "2"><b><u>Average Stats Per Round Overall</font></b></u>')
+      initial_text <- 'Average Stats Per Round Overall'
+      
+      if (dynamic_name == '') {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, '</font></b></u>')
+        
+      } else {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, ' While Filtering on: ',
+                             dynamic_name, '</font></b></u>')
+        
+      }
       
     }
+    
+    HTML(final_text)
       
   })
   
   output$StatsLoseLabel <- renderUI({
     
+    req(input$champion != 'None')
+    
     req(input$measure == 'winrate' |
           input$measure == 'winrateadjusted')
     
-    HTML('<font size = "2"><b><u>Average Stats Per Round For Game Losses</font></b></u>')
+    dynamic_name <- create_dynamic_text(filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                                        filtered_League(), filtered_Servertype(), filtered_Map(),
+                                        filtered_Casual(), filtered_Mount(), filtered_Title(),
+                                        filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                                        filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                                        filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                                        filter_player(), player_selection(), barplot = FALSE)
+    
+    initial_text <- 'Average Stats Per Round For Game Wins'
+    
+    if (dynamic_name == '') {
+      
+      final_text <- paste0('<font size = "2"><b><u>', initial_text, '</font></b></u>')
+      
+    } else {
+      
+      final_text <- paste0('<font size = "2"><b><u>', initial_text, ' While Filtering on: ',
+                           dynamic_name, '</font></b></u>')
+      
+    }
+    
+    HTML(final_text)
     
   })
   
@@ -3113,33 +3744,98 @@ server <- function(input, output) {
   
   output$BestCompsLabel <- renderUI({
     
+    req(input$champion != 'None')
+    
+    dynamic_name <- create_dynamic_text(filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                                        filtered_League(), filtered_Servertype(), filtered_Map(),
+                                        filtered_Casual(), filtered_Mount(), filtered_Title(),
+                                        filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                                        filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                                        filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                                        filter_player(), player_selection(), barplot = FALSE)
+    
     if (input$measure == 'winrate' |
         input$measure == 'winrateadjusted') {
-    
-    HTML('<font size = "2"><b><u>Top 5 Best Comps</font></b></u>')
+      
+      initial_text <- 'Top 5 Best Comps'
+      
+      if (dynamic_name == '') {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, '</font></b></u>')
+        
+      } else {
+        
+       final_text <- paste0('<font size = "2"><b><u>', initial_text, ' While Filtering on: ',
+                            dynamic_name, '</font></b></u>')
+
+      }
       
     } else {
       
-      HTML('<font size = "2"><b><u>Top 5 Most Played Comps</font></b></u>')
+      initial_text <- 'Top 5 Most Played Comps'
       
+      if (dynamic_name == '') {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, '</font></b></u>')
+        
+      } else {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, ' While Filtering on: ',
+                             dynamic_name, '</font></b></u>') 
+        
+      }
     }
     
+    HTML(final_text)
   })
   output$BestComps <- renderTable(head(ally_comp_agg(), 5)
     )
   
   output$WorstCompsLabel <- renderUI({
     
+    req(input$champion != 'None')
+    
+    dynamic_name <- create_dynamic_text(filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                                        filtered_League(), filtered_Servertype(), filtered_Map(),
+                                        filtered_Casual(), filtered_Mount(), filtered_Title(),
+                                        filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                                        filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                                        filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                                        filter_player(), player_selection(), barplot = FALSE)
+    
     if (input$measure == 'winrate' |
         input$measure == 'winrateadjusted') {
-    
-    HTML('<font size = "2"><b><u>Top 5 Worst Comps</font></b></u>')
-    
+      
+      initial_text <- 'Top 5 Worst Comps'
+      
+      if (dynamic_name == '') {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, '</font></b></u>')
+        
+      } else {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, ' While Filtering on: ',
+                             dynamic_name, '</font></b></u>')
+        
+      }
+      
     } else {
       
-      HTML('<font size = "2"><b><u>Top 5 Least Played Comps</font></b></u>')
+      initial_text <- 'Top 5 Least Played Comps'
       
+      if (dynamic_name == '') {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, '</font></b></u>')
+        
+      } else {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, ' While Filtering on: ',
+                             dynamic_name, '</font></b></u>') 
+        
+      }
     }
+    
+    HTML(final_text)
       
   })
   
@@ -3148,16 +3844,49 @@ server <- function(input, output) {
   
   output$BestMatchupsLabel <- renderUI({
     
+    req(input$champion != 'None')
+    
+    dynamic_name <- create_dynamic_text(filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                                        filtered_League(), filtered_Servertype(), filtered_Map(),
+                                        filtered_Casual(), filtered_Mount(), filtered_Title(),
+                                        filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                                        filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                                        filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                                        filter_player(), player_selection(), barplot = FALSE)
+    
     if (input$measure == 'winrate' |
         input$measure == 'winrateadjusted') {
-    
-    HTML('<font size = "2"><b><u>Top 5 Best Matchups</font></b></u>')
+      
+      initial_text <- 'Top 5 Best Matchups'
+      
+      if (dynamic_name == '') {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, '</font></b></u>')
+        
+      } else {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, ' While Filtering on: ',
+                             dynamic_name, '</font></b></u>')
+        
+      }
       
     } else {
       
-      HTML('<font size = "2"><b><u>Top 5 Most Popular Matchups</font></b></u>')
+      initial_text <- 'Top 5 Most Popular Matchups'
       
+      if (dynamic_name == '') {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, '</font></b></u>')
+        
+      } else {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, ' While Filtering on: ',
+                             dynamic_name, '</font></b></u>') 
+        
+      }
     }
+    
+    HTML(final_text)
     
   })
   
@@ -3165,16 +3894,49 @@ server <- function(input, output) {
   
   output$WorstMatchupsLabel <- renderUI({
     
+    req(input$champion != 'None')
+    
+    dynamic_name <- create_dynamic_text(filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                                        filtered_League(), filtered_Servertype(), filtered_Map(),
+                                        filtered_Casual(), filtered_Mount(), filtered_Title(),
+                                        filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                                        filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                                        filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                                        filter_player(), player_selection(), barplot = FALSE)
+    
     if (input$measure == 'winrate' |
         input$measure == 'winrateadjusted') {
-    
-    HTML('<font size = "2"><b><u>Top 5 Worst Matchups</font></b></u>')
+      
+      initial_text <- 'Top 5 Worst Matchups'
+      
+      if (dynamic_name == '') {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, '</font></b></u>')
+        
+      } else {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, ' While Filtering on: ',
+                             dynamic_name, '</font></b></u>')
+        
+      }
       
     } else {
       
-      HTML('<font size = "2"><b><u>Top 5 Least Popular Matchups</font></b></u>')
+      initial_text <- 'Top 5 Least Popular Matchups'
       
+      if (dynamic_name == '') {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, '</font></b></u>')
+        
+      } else {
+        
+        final_text <- paste0('<font size = "2"><b><u>', initial_text, ' While Filtering on: ',
+                             dynamic_name, '</font></b></u>') 
+        
+      }
     }
+    
+    HTML(final_text)
     
   })
   
@@ -3366,9 +4128,6 @@ server <- function(input, output) {
   
   Allyroles_worst <- reactive({
     
-    test <- 1
-    test
-    
     if (input$measure != 'pickrateadjusted') {
     
     data <- pre_agg_allyroles() %>%
@@ -3422,6 +4181,14 @@ server <- function(input, output) {
   
   output$BestAllyRoles <- renderUI({
     
+    dynamic_name <- create_dynamic_text(filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                                        filtered_League(), filtered_Servertype(), filtered_Map(),
+                                        filtered_Casual(), filtered_Mount(), filtered_Title(),
+                                        filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                                        filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                                        filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                                        filter_player(), player_selection(), barplot = FALSE)
+    
     bestoverall <- head(Allyroles_best(), 1)$Team_Roles
     bestoverall_count <- head(Allyroles_df(), 1)$Sample_Size
     bestmatchup <- head(Allyroles_best(), 1)$Enemy_Roles
@@ -3435,6 +4202,8 @@ server <- function(input, output) {
     bestoverall_win <- head(Allyroles_df(), 1)$Win_Rate
     bestmatchup_win <- head(Allyroles_best(), 1)$Win_Rate
     worstmatchup_win <- tail(Allyroles_best(), 1)$Win_Rate
+    
+    if (dynamic_name == '') {
     
     output <- HTML(paste0('<font size = "2"> The best overall roles for ',
                 input$champion,
@@ -3457,11 +4226,42 @@ server <- function(input, output) {
                 ' percent with ',
                 worstmatchup_count,
                 ' observations.</font></b></u>'))
+    
+    } else {
+      
+      output <- HTML(paste0('<font size = "2"> The best overall roles for ',
+                            input$champion,
+                            ' while filtering for ',
+                            dynamic_name,
+                            ' is ',
+                            bestoverall,
+                            ' with a win rate of ',
+                            bestoverall_win,
+                            ' percent with ',
+                            bestoverall_count,
+                            ' observations. The best matchup is against ',
+                            bestmatchup,
+                            ' with a win rate of ',
+                            bestmatchup_win,
+                            ' percent with ',
+                            bestmatchup_count,
+                            ' observations and the worst matchup against ',
+                            worstmatchup,
+                            ' with a win rate of ',
+                            worstmatchup_win,
+                            ' percent with ',
+                            worstmatchup_count,
+                            ' observations.</font></b></u>'))
+      
+      
+    }
     } else {
       
       bestoverall_pick <- head(Allyroles_df(), 1)$Pick_Rate
       bestmatchup_pick <- head(Allyroles_best(), 1)$Pick_Rate
       worstmatchup_pick <- tail(Allyroles_best(), 1)$Pick_Rate
+      
+      if(dynamic_name == '') {
       
       output <- HTML(paste0('<font size = "2"> The most popular overall roles for ',
                             input$champion,
@@ -3484,7 +4284,34 @@ server <- function(input, output) {
                             ' percent with ',
                             worstmatchup_count,
                             ' observations.</font></b></u>'))
-      
+      } else {
+        
+        output <- HTML(paste0('<font size = "2"> The most popular overall roles for ',
+                              input$champion,
+                              ' while filtering for ',
+                              dynamic_name,
+                              ' is ',
+                              bestoverall,
+                              ' with a pick rate of ',
+                              bestoverall_pick,
+                              ' percent with ',
+                              bestoverall_count,
+                              ' observations. The most popular matchup is against ',
+                              bestmatchup,
+                              ' with a pick rate of ',
+                              bestmatchup_pick,
+                              ' percent with ',
+                              bestmatchup_count,
+                              ' observations and the least popular matchup against ',
+                              worstmatchup,
+                              ' with a pick rate of ',
+                              worstmatchup_pick,
+                              ' percent with ',
+                              worstmatchup_count,
+                              ' observations.</font></b></u>'))
+        
+        
+      }
     }
     
     output
@@ -3492,6 +4319,14 @@ server <- function(input, output) {
   })
   
   output$WorstAllyRoles <- renderUI({
+    
+    dynamic_name <- create_dynamic_text(filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                                        filtered_League(), filtered_Servertype(), filtered_Map(),
+                                        filtered_Casual(), filtered_Mount(), filtered_Title(),
+                                        filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                                        filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                                        filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                                        filter_player(), player_selection(), barplot = FALSE)
     
     worstoverall <- head(Allyroles_worst(), 1)$Team_Roles
     worstoverall_count <- tail(Allyroles_df(), 1)$Sample_Size
@@ -3507,6 +4342,8 @@ server <- function(input, output) {
       worstoverall_win <- tail(Allyroles_df(), 1)$Win_Rate
       bestmatchup_win <- head(Allyroles_worst(), 1)$Win_Rate
       worstmatchup_win <- tail(Allyroles_worst(), 1)$Win_Rate
+      
+      if(dynamic_name == '') {
     
       output <- HTML(paste0('<font size = "2"> The worst overall roles for ',
                             input$champion,
@@ -3530,11 +4367,41 @@ server <- function(input, output) {
                             worstmatchup_count,
                             ' observations.</font></b></u>'))
       
+      } else {
+        
+        output <- HTML(paste0('<font size = "2"> The worst overall roles for ',
+                              input$champion,
+                              ' while filtering for ',
+                              dynamic_name,
+                              ' is ',
+                              worstoverall,
+                              ' with a win rate of ',
+                              worstoverall_win,
+                              ' percent with ',
+                              worstoverall_count,
+                              ' observations. The best matchup is against ',
+                              bestmatchup,
+                              ' with a win rate of ',
+                              bestmatchup_win,
+                              ' percent with ',
+                              bestmatchup_count,
+                              ' observations and the worst matchup against ',
+                              worstmatchup,
+                              ' with a win rate of ',
+                              worstmatchup_win,
+                              ' percent with ',
+                              worstmatchup_count,
+                              ' observations.</font></b></u>'))
+        
+      }
+      
     } else {
       
       worstoverall_pick <- tail(Allyroles_df(), 1)$Pick_Rate
       bestmatchup_pick <- head(Allyroles_worst(), 1)$Pick_Rate
       worstmatchup_pick <- tail(Allyroles_worst(), 1)$Pick_Rate
+      
+      if (dynamic_name == '') {
       
       output <- HTML(paste0('<font size = "2"> The least popular roles for ',
                             input$champion,
@@ -3557,8 +4424,34 @@ server <- function(input, output) {
                             ' percent with ',
                             worstmatchup_count,
                             ' observations.</font></b></u>'))
-      
-      
+      } else {
+        
+        output <- HTML(paste0('<font size = "2"> The least popular roles for ',
+                              input$champion,
+                              ' while filtering for ',
+                              dynamic_name,
+                              ' is ',
+                              worstoverall,
+                              ' with a pick rate of ',
+                              worstoverall_pick,
+                              ' percent with ',
+                              worstoverall_count,
+                              ' observations. The most popular matchup is against ',
+                              bestmatchup,
+                              ' with a pick rate of ',
+                              bestmatchup_pick,
+                              ' percent with ',
+                              bestmatchup_count,
+                              ' observations and the least popular matchup against ',
+                              worstmatchup,
+                              ' with a pick rate of ',
+                              worstmatchup_pick,
+                              ' percent with ',
+                              worstmatchup_count,
+                              ' observations.</font></b></u>'))
+        
+      }
+ 
     }
     
     output
@@ -3797,8 +4690,39 @@ server <- function(input, output) {
   )
   
   
-  create_battlerites_barplot <- function(agg_df, measure) {
-
+  create_battlerites_barplot <- function(agg_df, measure, input_champion,
+                                         filtered_totaltime, filtered_championtime,
+                                         filtered_region, filtered_league, filtered_servertype,
+                                         filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
+                                         filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
+                                         filtered_playertype, filtered_date, filtered_battlerites, filtered_ping,
+                                         filter_player, player_selection) {
+    
+    if (measure == 'winrate') {
+      
+      initial_title <- paste0(input_champion, ' Win Rate Split by Battlerite Choice')
+      
+    } else if (measure == 'winrateadjusted') {
+      
+      initial_title <- paste0(input_champion, ' Win Rate (Adjusted) Split by Battlerite Choice')
+      
+    } else if (measure == 'pickrate') {
+      
+      initial_title <- paste0(input_champion, ' Battlerite Pick Rate')
+      
+    } else {
+      
+      initial_title <- paste0(input_champion, ' Battlerite Pick Rate (Adjusted)')
+      
+    }
+    
+    sub_title <- create_dynamic_text(filtered_totaltime, filtered_championtime,
+                                        filtered_region, filtered_league, filtered_servertype,
+                                        filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
+                                        filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
+                                        filtered_playertype, filtered_date, filtered_battlerites, filtered_ping,
+                                        filter_player, player_selection, barplot = TRUE)
+    
     Colors <- setNames(c('#FF4FCE', '#A8FF47', '#FFB800', '#FF2A1C', '#00FFE9', '#0095FF', '#BBFFFC'),
                        levels(agg_df$`Battlerite Type`))
     
@@ -3807,12 +4731,12 @@ server <- function(input, output) {
     if (measure == 'winrate' | measure == 'winrateadjusted') {
       
       bar <- ggplot(data = agg_df, aes(x = Battlerites, y = Win_Rate, fill = `Battlerite Type`)) +
-        ylab('Win Rate')
+        ylab('Win Rate (Percent)')
       
     } else {
       
       bar <- ggplot(data = agg_df, aes(x = Battlerites, y = Pick_Rate, fill = `Battlerite Type`)) +
-        ylab('Pick Rate')
+        ylab('Pick Rate (Percent)')
       
     }
     
@@ -3820,7 +4744,19 @@ server <- function(input, output) {
       coord_flip() +
       scale_fill_manual(values = Colors_subset) +
       xlab('Battlerites') +
-      theme(legend.position = 'none')
+      theme(legend.position = 'none', plot.title = element_text(size = 16, face = 'bold'))
+    
+    if (sub_title == '') {
+      
+      bar <- bar + ggtitle(initial_title, subtitle = waiver())
+      
+    } else {
+      
+      final_title <- paste0(initial_title, ' Filtered on:')
+      
+      bar <- bar + ggtitle(final_title, subtitle = sub_title)
+      
+    }
     
     return(bar)
     
@@ -3914,19 +4850,30 @@ server <- function(input, output) {
   })
     
 
-    
-    
-  
   output$Battlerites <- renderPlot({
     
     req(input$champion != 'None')
     if(is.null(filtered_Battlerites$battlerites)) {
       
-    create_battlerites_barplot(battlerites_agg1(), input$measure)
+    create_battlerites_barplot(battlerites_agg1(), input$measure, input$champion,
+                               filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                               filtered_League(), filtered_Servertype(), filtered_Map(),
+                               filtered_Casual(), filtered_Mount(), filtered_Title(),
+                               filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                               filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                               filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                               filter_player(), player_selection())
     
       } else if (length(filtered_Battlerites$battlerites) < 5) {
       
-      create_battlerites_barplot(battlerites_agg1(), input$measure)
+      create_battlerites_barplot(battlerites_agg1(), input$measure, input$champion,
+                                 filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                                 filtered_League(), filtered_Servertype(), filtered_Map(),
+                                 filtered_Casual(), filtered_Mount(), filtered_Title(),
+                                 filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                                 filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                                 filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                                 filter_player(), player_selection())
       
     }
 
@@ -4045,8 +4992,17 @@ server <- function(input, output) {
       
   output$BestOverallBattlerites <- renderUI({
     
+    dynamic_name <- create_dynamic_text(filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                                        filtered_League(), filtered_Servertype(), filtered_Map(),
+                                        filtered_Casual(), filtered_Mount(), filtered_Title(),
+                                        filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                                        filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                                        filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                                        filter_player(), player_selection(), barplot = FALSE)
+    
     if (input$measure == 'winrate' | input$measure == 'winrateadjusted') {
-
+      
+      if (dynamic_name == '') {
 
     HTML(paste0('<font size = "2"> The best overall battlerites for ',
                 input$champion,
@@ -4057,8 +5013,27 @@ server <- function(input, output) {
                 ' percent and has ',
                 head(Battlerites_df(), 1)$Sample_Size,
                 ' observations.</font>'))
+        
+      } else {
+        
+        HTML(paste0('<font size = "2"> The best overall battlerites for ',
+                    input$champion,
+                    ' while filtering for ',
+                    dynamic_name,
+                    ' is <b>',
+                    head(Battlerites_df(), 1)$Battlerites,
+                    '</b> with a win rate of ',
+                    head(Battlerites_df(), 1)$Win_Rate,
+                    ' percent and has ',
+                    head(Battlerites_df(), 1)$Sample_Size,
+                    ' observations.</font>')) 
+        
+        
+      }
       
     } else {
+      
+      if (dynamic_name == '') {
       
       HTML(paste0('<font size = "2"> The most popular battlerites for ',
                   input$champion,
@@ -4069,7 +5044,21 @@ server <- function(input, output) {
                   ' percent and has ',
                   head(Battlerites_df(), 1)$Sample_Size,
                   ' observations.</font>'))
-      
+      } else {
+        
+        HTML(paste0('<font size = "2"> The most popular battlerites for ',
+                    input$champion,
+                    ' while filtering for ',
+                    dynamic_name,
+                    ' is <b>',
+                    head(Battlerites_df(), 1)$Battlerites,
+                    '</b> with a pick rate of ',
+                    head(Battlerites_df(), 1)$Pick_Rate,
+                    ' percent and has ',
+                    head(Battlerites_df(), 1)$Sample_Size,
+                    ' observations.</font>'))
+        
+      }
       
     }
     
@@ -4078,6 +5067,25 @@ server <- function(input, output) {
 #################  
 ###PLAYER DATA###
 #################
+  
+  #Player Filter information (what is being filtered)
+  output$Player_Filter_Info <- renderUI({
+    
+    dynamic_name <- create_dynamic_text(filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                                        filtered_League(), filtered_Servertype(), filtered_Map(),
+                                        filtered_Casual(), filtered_Mount(), filtered_Title(),
+                                        filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                                        filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                                        filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                                        filter_player(), player_selection(), barplot = FALSE)
+    
+    req(dynamic_name != '')
+    
+    HTML(paste0('<font size = "2"><b>Players in the table directly below is filtered to ', dynamic_name, '</font></b>'))
+    
+  })
+  
+  
   
   #Player Table
   #Including User_ID and Name since there are some names with foreign characters that may not be parsed correctly

@@ -21,195 +21,77 @@ attachment_crosswalk <- read_csv('Reference Files/Attachment_Crosswalk.csv')
 mount_crosswalk <- read_csv('Reference Files/Mount_Crosswalk.csv')
 champion_crosswalk <- read_csv('Reference Files/Champion_Crosswalk.csv')
 avatar_crosswalk <- read_csv('Reference Files/Avatar_Crosswalk.csv')
-
-
-
-df <- read_csv('Data/2019/July/10/Jul-10-2019_1.csv')
 region_coordinates <- read_excel('Reference Files/region.xlsx')
-#Remove the ally and enemy data other than comp/team roles
-df <- df[, c(1:73, 112, 113)]
-
-df$Map <- factor(df$Map)
-df$Champion <- factor(df$Champion)
-df$Region <- factor(df$Region)
-df$League <- factor(df$League, levels = rev(c('Grand Champion', 'Champion', 'Diamond', 'Platinum', 'Gold',
-                                              'Silver', 'Bronze')), ordered = TRUE)
-region_coordinates$`Region Group` <- factor(region_coordinates$`Region Group`)
-
-
-#Attach Latitude/Longitude, City, Region Group
-region_coordinates$Region <- factor(region_coordinates$Region, levels = levels(df$Region))
-df <- inner_join(x = df, y = region_coordinates, by = c('Region' = 'Region'))
-df$`Region Group` <- factor(df$`Region Group`)
-df <- mutate(df, Region = Region_Clean)
-df$Region <- factor(df$Region)
-
-
-df$`Battlerite 1` <- factor(df$`Battlerite 1`)
-df$`Battlerite 2` <- factor(df$`Battlerite 2`)
-df$`Battlerite 3` <- factor(df$`Battlerite 3`)
-df$`Battlerite 4` <- factor(df$`Battlerite 4`)
-df$`Battlerite 5` <- factor(df$`Battlerite 5`)
-
-unique_champions <- unique(df$Champion)
-
-#Convert seconds to hours and round up to use in input slider
-df <- mutate(df, Total_Time_Played = ceiling(Total_Time_Played/3600),
-             Champion_Time_Played = ceiling(Champion_Time_Played/3600))
-
-#Put Change Server_Type variable to show 2v2, 3v3, solo queue
-df <- mutate(df, Server_Type = ifelse(Solo_Queue == 1 & Match_Type == 'LEAGUE3V3', 'Solo Queue', 
-                                      ifelse(Server_Type == 'QUICK3V3', '3V3',
-                                             ifelse(Server_Type == 'QUICK2V2', '2V2', Server_Type))))
-df$Server_Type <- factor(df$Server_Type)
-
-#Convert 'None' to 'Unranked' - there should only be ranked or unranked
-df <- mutate(df, Ranking_Type = ifelse(Ranking_Type == 'NONE', 'UNRANKED', Ranking_Type))
-df$Ranking_Type <- factor(df$Ranking_Type)
-
-#Add bot player_type information. If outfit is a blank, is a bot (All default battlerites selected for all players
-#With blank outfits for all champions) Or mount is blank, is a bot
-df <- mutate(df, Player_Type = ifelse(is.na(Outfit) | is.na(Mount), 'BOT', 'PLAYER'))
-
-#Bots use default outfits except for mounta, fill in blanks with defaults
-#Bots can also have no mount recorded, fill in blank with RAM
-df <- mutate(df, Outfit = ifelse(is.na(Outfit), 'DEFAULT OUTFIT', Outfit),
-             Attachment = ifelse(is.na(Attachment), 'DEFAULT WEAPON', Attachment),
-             Pose = ifelse(is.na(Pose), 'DEFAULT POSE', Pose),
-             Mount = ifelse(is.na(Mount), 'RAM', Mount))
-
-
-
-#Convert > 200 ping to 200 ping
-df <- mutate(df, Ping = 10*round(Ping/10))
-df <- mutate(df, Ping = ifelse(is.na(Ping), -1, ifelse(Ping > 200, 1000, Ping)))
-df$Ping <- as.character(df$Ping)
-df <- mutate(df, Ping = ifelse(Ping == '-1', 'Unknown', ifelse(Ping == 1000, 'Time out', Ping)))
-
-df$Ping <- factor(df$Ping, levels = c('0', '10', '20', '30', '40', '50', '60', '70', '80', '90', '100',
-                                      '110', '120', '130', '140', '150', '160', '170', '180', '190', '200',
-                                      'Time out', 'Unknown'))
-
-#Convert blank queue times to 0 (bots)
-df <- mutate(df, Queue_Time = ifelse(is.na(Queue_Time), 0, Queue_Time))
-
-#Round dates to days
-df <- mutate(df, Date = substr(Date, 1, 10))
-
-
-df$Player_Type <- factor(df$Player_Type)
-df$Team_Comp <- factor(df$Team_Comp)
-df$Enemy_Comp <- factor(df$Enemy_Comp)
-df$Outfit <- factor(df$Outfit)
-df$Mount <- factor(df$Mount)
-df$Attachment <- factor(df$Attachment)
-df$Pose <- factor(df$Pose)
-df$Title <- factor(df$Title)
-df$Avatar <- factor(df$Avatar)
-df$Date <- factor(df$Date)
-
-#Count only each combination once in one specific order
-df$Team_Roles <- sapply(df$Team_Roles, function(x) strsplit(x, ", "))
-df$Team_Roles <- sapply(df$Team_Roles, function(x) paste(sort(x), collapse = ' '))
-df$Team_Roles <- factor(df$Team_Roles)
-df$Enemy_Roles <- sapply(df$Enemy_Roles, function(x) strsplit(x, ", "))
-df$Enemy_Roles <- sapply(df$Enemy_Roles, function(x) paste(sort(x), collapse = ' '))
-df$Enemy_Roles <- factor(df$Enemy_Roles)
-df$Battlerites <- sapply(df$Battlerites, function(x) strsplit(x, ", "))
-df$Battlerites <- names(sapply(df$Battlerites, function(x) paste(sort(x), collapse = ' ', sep = ', ')))
-
-df$Battlerites <- factor(df$Battlerites)
-
-#Group play time into buckets
-df <- mutate(df, Total_Time_Played = ifelse(is.na(Total_Time_Played), 'Unknown', 
-                                            ifelse(Total_Time_Played <= 10, 'Under 10',
-                                                  ifelse(Total_Time_Played <= 50, '10-50',
-                                                         ifelse(Total_Time_Played <= 100, '50-100',
-                                                                ifelse(Total_Time_Played  <= 200, '100-200',
-                                                                       ifelse(Total_Time_Played <= 500, '200-500', 'Over 500')))))),
-             Champion_Time_Played = ifelse(is.na(Champion_Time_Played), 'Unknown', 
-                                           ifelse(Champion_Time_Played <= 10, 'Under 10',
-                                                 ifelse(Champion_Time_Played <= 50, '10-50',
-                                                        ifelse(Champion_Time_Played <= 100, '50-100',
-                                                               ifelse(Champion_Time_Played  <= 200, '100-200',
-                                                                      ifelse(Champion_Time_Played <= 500, '200-500', 'Over 500'))))))
-)
-
-df$Total_Time_Played <- factor(df$Total_Time_Played, levels = c('Under 10', '10-50', '50-100', 
-                                                                '100-200', '200-500', 'Over 500', 'Unknown'))
-df$Champion_Time_Played <- factor(df$Champion_Time_Played, levels = c('Under 10', '10-50', '50-100', 
-                                                                      '100-200', '200-500', 'Over 500', 'Unknown'))
-
-
-
-#Compute total number of 'Pick' phases for pick rate. Total number of unique Game_ID's * 2
-Total_Picks_Overall <- length(unique(df$Game_ID))*2
-
-df$User_ID <- as.character(df$User_ID)
-
-#Get Champion pick rate adjusted df
-#Get total games played for each user for df for pickrateadjusted
-User_Total_Games_df <- df %>%
-  group_by(Game_ID, User_ID) %>%
-  ungroup() %>%
-  group_by(User_ID) %>%
-  summarize(Total_Games = n())
-
-
-data <- df %>%
-  group_by(Game_ID, User_ID, Champion) 
-
-data <- data %>%
-  ungroup() %>%
-  group_by(User_ID, Champion) %>%
-  summarize(Num_Picks = n())
-
-data <- inner_join(x = data, y = User_Total_Games_df, by = c('User_ID' = 'User_ID'))
-
-categories <- unique(pull(data, Champion))
-num_unique_users <- length(unique(data$User_ID))
-
-Category = c()
-Pick_Rate = c()
-Sample_Size = c()
-
-for (category in categories) {
-  
-  data2 <- filter(data, Champion == category)
-  user_pick_rates <- c()
-  
-  #Check if user has picked any other category and compute probability accordingly
-  for (userid in data2$User_ID) {
-    
-    user_filtered <- filter(data2, User_ID == userid)
-    user_pick_rate <- user_filtered$Num_Picks/user_filtered$Total_Games
-    user_pick_rates <- c(user_pick_rates, user_pick_rate)
-    
-    
-  }
-  
-  category_pick_rate <- sum(user_pick_rates)/num_unique_users
-  sample_size <- length(user_pick_rates)
-  
-  Category <- c(Category, category)
-  Pick_Rate <- c(Pick_Rate, category_pick_rate)
-  Sample_Size <- c(Sample_Size, sample_size)
-}
-
-Champions_Pick_Rate <- data.frame(Category, Pick_Rate, Sample_Size, stringsAsFactors = TRUE) %>%
-  mutate(Pick_Rate = round(Pick_Rate*100,2))
-colnames(Champions_Pick_Rate)[colnames(Champions_Pick_Rate) == 'Category'] <- 'Champion'
-Champions_Pick_Rate$Champion <- factor(Champions_Pick_Rate$Champion)
-
 
 ui <- navbarPage('Navbar',
+                 tabPanel('File Selection',
+                          fluidRow(
+                            column(width = 4,
+                                   radioButtons(inputId = 'FileSelectAll',
+                                                label = 'File Selection',
+                                                choices = c('Use all data', 'Customize'),
+                                                selected = 'Customize'),
+                                   conditionalPanel(
+                                     condition = "input.FileSelectAll == 'Customize'",
+                                     selectInput(inputId = 'FileSelectDays',
+                                                 label = 'Select Days Included:',
+                                                 multiple = TRUE,
+                                                 choices = 10:17,
+                                                 selected = 10)
+                                   )
+                            ),
+                            column(width = 4,
+                                   selectInput(inputId = 'Customize',
+                                               label = 'Customize File Selection For Each Day:',
+                                               multiple = FALSE,
+                                               choices = c('Use all data from each day', 'Customize'),
+                                               selected =  'Use all data from each day')
+                            ),
+                            column(width = 4,
+                                   actionButton(inputId = 'CreateData',
+                                                label = 'Choose Selected Data'),
+                                   htmlOutput('MessageDataCreated'))
+                          ),
+                          fluidRow(
+                            column(width = 3,
+                                   uiOutput('Interactive_Day10a'),
+                                   uiOutput('Interactive_Day10b')),
+                            column(width = 3,
+                                   uiOutput('Interactive_Day11a'),
+                                   uiOutput('Interactive_Day11b')),
+                            column(width = 3,
+                                   uiOutput('Interactive_Day12a'),
+                                   uiOutput('Interactive_Day12b')),
+                            column(width = 3,
+                                   uiOutput('Interactive_Day13a'),
+                                   uiOutput('Interactive_Day13b'))
+                          ),
+                          fluidRow(
+                            column(width = 3,
+                                   uiOutput('Interactive_Day14a'),
+                                   uiOutput('Interactive_Day14b')),
+                            column(width = 3,
+                                   uiOutput('Interactive_Day15a'),
+                                   uiOutput('Interactive_Day15b')),
+                            column(width = 3,
+                                   uiOutput('Interactive_Day16a'),
+                                   uiOutput('Interactive_Day16b')),
+                            column(width = 3,
+                                   uiOutput('Interactive_Day17a'),
+                                   uiOutput('Interactive_Day17b'))
+                          )
+                 ),
                  tabPanel('Champion',
                           fluidRow(
                             column(width = 4,
                                    selectInput(inputId = 'champion',
                                                label = 'Champion',
                                                multiple = FALSE,
-                                               choices = c('None', levels(df$Champion)),
+                                               choices = c('None', c("ALYSIA", "ASHKA", "BAKKO", "BLOSSOM", "CROAK",
+                                                                     "DESTINY", "EZMO", "FREYA", "IVA", "JADE", "JAMILA", 
+                                                                     "JUMONG", "LUCIE", "OLDUR", "PEARL", "PESTILUS", "POLOMA",
+                                                                     "RAIGON", "ROOK", "RUH KAAN", "SHEN RAO", "SHIFU", "SIRIUS",
+                                                                     "TAYA", "THORN", "ULRIC", "VARESH", "ZANDER" )),
                                                selected = 'None')
                                    
                             ),
@@ -467,6 +349,663 @@ ui <- navbarPage('Navbar',
 )
 
 server <- function(input, output) {
+  
+  ####################
+  ####################
+  ###FILE SELECTION###
+  ####################
+  ####################
+  
+  ################################
+  ###INTERACTIVE FILE SELECTION###
+  ################################
+  
+  output$Interactive_Day10a <- renderUI({
+    
+    req(input$FileSelectAll == 'Customize')
+    req(input$Customize == 'Customize')
+    req('10' %in% input$FileSelectDays)
+
+    selectInput(inputId = 'Day10',
+                label = 'Customize Day 10',
+                choices = c('Use all data', 'Customize'),
+                selected = 'Use all data')
+    
+  })
+  
+  output$Interactive_Day10b <- renderUI({
+    
+    req(input$FileSelectAll == 'Customize')
+    req(input$Day10 == 'Customize')
+
+    selectInput(inputId = 'Day10Customize',
+                label = 'Select files:',
+                multiple = TRUE,
+                choices = list.files(path = 'Data', pattern = '^Jul-10', recursive = TRUE)) 
+    
+  })
+  
+  output$Interactive_Day11a <- renderUI({
+    
+    req(input$FileSelectAll == 'Customize')
+    req(input$Customize == 'Customize')
+    req('11' %in% input$FileSelectDays)
+    
+    selectInput(inputId = 'Day11',
+                label = 'Customize Day 11',
+                choices = c('Use all data', 'Customize'),
+                selected = 'Use all data')
+    
+  })
+  
+  output$Interactive_Day11b <- renderUI({
+    
+    req(input$FileSelectAll == 'Customize')
+    req(input$Day11 == 'Customize')
+    
+    selectInput(inputId = 'Day11Customize',
+                label = 'Select files:',
+                multiple = TRUE,
+                choices = list.files(path = 'Data', pattern = '^Jul-11', recursive = TRUE)) 
+    
+  })
+  
+  output$Interactive_Day12a <- renderUI({
+    
+    req(input$FileSelectAll == 'Customize')
+    req(input$Customize == 'Customize')
+    req('12' %in% input$FileSelectDays)
+    
+    selectInput(inputId = 'Day12',
+                label = 'Customize Day 12',
+                choices = c('Use all data', 'Customize'),
+                selected = 'Use all data')
+    
+  })
+  
+  output$Interactive_Day12b <- renderUI({
+    
+    req(input$FileSelectAll == 'Customize')
+    req(input$Day12 == 'Customize')
+    
+    selectInput(inputId = 'Day12Customize',
+                label = 'Select files:',
+                multiple = TRUE,
+                choices = list.files(path = 'Data', pattern = '^Jul-12', recursive = TRUE)) 
+    
+  })
+  
+  output$Interactive_Day13a <- renderUI({
+    
+    req(input$FileSelectAll == 'Customize')
+    req(input$Customize == 'Customize')
+    req('13' %in% input$FileSelectDays)
+    
+    selectInput(inputId = 'Day13',
+                label = 'Customize Day 13',
+                choices = c('Use all data', 'Customize'),
+                selected = 'Use all data')
+    
+  })
+  
+  output$Interactive_Day13b <- renderUI({
+    
+    req(input$FileSelectAll == 'Customize')
+    req(input$Day13 == 'Customize')
+    
+    selectInput(inputId = 'Day13Customize',
+                label = 'Select files:',
+                multiple = TRUE,
+                choices = list.files(path = 'Data', pattern = '^Jul-13', recursive = TRUE)) 
+    
+  })
+  
+  output$Interactive_Day14a <- renderUI({
+    
+    req(input$FileSelectAll == 'Customize')
+    req(input$Customize == 'Customize')
+    req('14' %in% input$FileSelectDays)
+    
+    selectInput(inputId = 'Day14',
+                label = 'Customize Day 14',
+                choices = c('Use all data', 'Customize'),
+                selected = 'Use all data')
+    
+  })
+  
+  output$Interactive_Day14b <- renderUI({
+    
+    req(input$FileSelectAll == 'Customize')
+    req(input$Day14 == 'Customize')
+    
+    selectInput(inputId = 'Day14Customize',
+                label = 'Select files:',
+                multiple = TRUE,
+                choices = list.files(path = 'Data', pattern = '^Jul-14', recursive = TRUE)) 
+    
+  })
+  
+  output$Interactive_Day15a <- renderUI({
+    
+    req(input$FileSelectAll == 'Customize')
+    req(input$Customize == 'Customize')
+    req('15' %in% input$FileSelectDays)
+    
+    selectInput(inputId = 'Day15',
+                label = 'Customize Day 15',
+                choices = c('Use all data', 'Customize'),
+                selected = 'Use all data')
+    
+  })
+  
+  output$Interactive_Day15b <- renderUI({
+    
+    req(input$FileSelectAll == 'Customize')
+    req(input$Day15 == 'Customize')
+    
+    selectInput(inputId = 'Day15Customize',
+                label = 'Select files:',
+                multiple = TRUE,
+                choices = list.files(path = 'Data', pattern = '^Jul-15', recursive = TRUE)) 
+    
+  })
+  
+  output$Interactive_Day16a <- renderUI({
+    
+    req(input$FileSelectAll == 'Customize')
+    req(input$Customize == 'Customize')
+    req('16' %in% input$FileSelectDays)
+    
+    selectInput(inputId = 'Day16',
+                label = 'Customize Day 16',
+                choices = c('Use all data', 'Customize'),
+                selected = 'Use all data')
+    
+  })
+  
+  output$Interactive_Day16b <- renderUI({
+    
+    req(input$FileSelectAll == 'Customize')
+    req(input$Day16 == 'Customize')
+    
+    selectInput(inputId = 'Day16Customize',
+                label = 'Select files:',
+                multiple = TRUE,
+                choices = list.files(path = 'Data', pattern = '^Jul-16', recursive = TRUE)) 
+    
+  })
+  
+  output$Interactive_Day17a <- renderUI({
+    
+    req(input$FileSelectAll == 'Customize')
+    req(input$Customize == 'Customize')
+    req('17' %in% input$FileSelectDays)
+    
+    selectInput(inputId = 'Day17',
+                label = 'Customize Day 17',
+                choices = c('Use all data', 'Customize'),
+                selected = 'Use all data')
+    
+  })
+  
+  output$Interactive_Day17b <- renderUI({
+    
+    req(input$FileSelectAll == 'Customize')
+    req(input$Day17 == 'Customize')
+    
+    selectInput(inputId = 'Day17Customize',
+                label = 'Select files:',
+                multiple = TRUE,
+                choices = list.files(path = 'Data', pattern = '^Jul-17', recursive = TRUE)) 
+    
+  })
+  
+  ##########
+  ###DATA###
+  ##########
+  
+  pre_df <- eventReactive(
+    eventExpr = input$CreateData,
+    valueExpr = {
+    
+    withProgress(message = 'Reading in data', value = 0, {
+      
+    data <- c()
+    
+    if (input$FileSelectAll == 'Use all data') {
+      
+      files <- list.files(path = 'Data', pattern = '^Jul', recursive = TRUE)
+      
+      for (file in files) {
+        
+        print(file)
+        data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+        
+      }
+      
+    } else {
+      
+      if (input$Customize == 'Use all data from each day') {
+        
+        for (day in input$FileSelectDays) {
+          
+          files <- list.files(path = 'Data', pattern = paste0('^Jul-', day), recursive = TRUE)
+          
+          for (file in files) {
+            
+            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            
+          }
+          
+        }
+        
+      } else {
+        
+        if(!is.null(input$Day10)) {
+        
+        if(input$Day10 == 'Use all data') {
+          
+          files <- list.files(path = 'Data', pattern = '^Jul-10', recursive = TRUE)
+          
+          for (file in files) {
+            
+            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            
+          }
+          
+        } else {
+          
+          if(!is.null(input$Day10Customize)) {
+          
+          for (file in input$Day10Customize) {
+            
+            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            
+          }}
+          
+        }}
+        
+        if(!is.null(input$Day11)) {
+        
+        if(input$Day11 == 'Use all data') {
+          
+          files <- list.files(path = 'Data', pattern = '^Jul-11', recursive = TRUE)
+          
+          for (file in files) {
+            
+            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            
+          }
+          
+        } else {
+          
+          if(!is.null(input$Day11Customize)) {
+          
+          for (file in input$Day11Customize) {
+            
+            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            
+          }}
+          
+        }}
+        
+        if(!is.null(input$Day12)) {
+        
+        if(input$Day12 == 'Use all data') {
+          
+          files <- list.files(path = 'Data', pattern = '^Jul-12', recursive = TRUE)
+          
+          for (file in files) {
+            
+            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            
+          }
+          
+        } else {
+          
+          if(!is.null(input$Day12Customize)) {
+          
+          for (file in input$Day12Customize) {
+            
+            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            
+          }}
+          
+        }}
+        
+        if(!is.null(input$Day13)) {
+        
+        if(input$Day13 == 'Use all data') {
+          
+          files <- list.files(path = 'Data', pattern = '^Jul-13', recursive = TRUE)
+          
+          for (file in files) {
+            
+            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            
+          }
+          
+        } else {
+          
+          if(!is.null(input$Day13Customize)) {
+          
+          for (file in input$Day13Customize) {
+            
+            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            
+          }}
+          
+        }}
+        
+        if(!is.null(input$Day14)) {
+        
+        if(input$Day14 == 'Use all data') {
+          
+          files <- list.files(path = 'Data', pattern = '^Jul-14', recursive = TRUE)
+          
+          for (file in files) {
+            
+            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            
+          }
+          
+        } else {
+          
+          if(!is.null(input$Day14Customize)) {
+          
+          for (file in input$Day14Customize) {
+            
+            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            
+          }}
+          
+        }}
+        
+        if(!is.null(input$Day15)) {
+        
+        if(input$Day15 == 'Use all data') {
+          
+          files <- list.files(path = 'Data', pattern = '^Jul-15', recursive = TRUE)
+          
+          for (file in files) {
+            
+            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            
+          }
+          
+        } else {
+          
+          if(!is.null(input$Day15Customize)) {
+          
+          for (file in input$Day15Customize) {
+            
+            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            
+          }}
+          
+        }}
+        
+        if(!is.null(input$Day16)) {
+        
+        if(input$Day16 == 'Use all data') {
+          
+          files <- list.files(path = 'Data', pattern = '^Jul-16', recursive = TRUE)
+          
+          for (file in files) {
+            
+            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            
+          }
+          
+        } else {
+          
+          if(!is.null(input$Day16Customize)) {
+          
+          for (file in input$Day16Customize) {
+            
+            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            
+          }}
+          
+        }}
+        
+        if(!is.null(input$Day17)) {
+        
+        if(input$Day17 == 'Use all data') {
+          
+          files <- list.files(path = 'Data', pattern = '^Jul-17', recursive = TRUE)
+          
+          for (file in files) {
+            
+            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            
+          }
+          
+        } else {
+          
+          if(!is.null(input$Day17Customize)) {
+          
+          for (file in input$Day17Customize) {
+            
+            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            
+          }}
+          
+        }}
+      }
+    }
+    
+    })
+  
+  data  
+    
+  })
+  
+  #####################
+  ###DATA PROCESSING###
+  #####################
+  
+  df <- reactive({
+    
+    withProgress(message = 'Data processing', value = 0, {
+    
+    df <- pre_df()
+    
+    df$Map <- factor(df$Map)
+    df$Champion <- factor(df$Champion)
+    df$Region <- factor(df$Region)
+    df$League <- factor(df$League, levels = rev(c('Grand Champion', 'Champion', 'Diamond', 'Platinum', 'Gold',
+                                                  'Silver', 'Bronze')), ordered = TRUE)
+    region_coordinates$`Region Group` <- factor(region_coordinates$`Region Group`)
+    
+    #Attach Latitude/Longitude, City, Region Group
+    region_coordinates$Region <- factor(region_coordinates$Region, levels = levels(df$Region))
+    df <- inner_join(x = df, y = region_coordinates, by = c('Region' = 'Region'))
+    
+    df$`Region Group` <- factor(df$`Region Group`)
+    df <- mutate(df, Region = Region_Clean)
+    df$Region <- factor(df$Region)
+    df$`Battlerite 1` <- factor(df$`Battlerite 1`)
+    df$`Battlerite 2` <- factor(df$`Battlerite 2`)
+    df$`Battlerite 3` <- factor(df$`Battlerite 3`)
+    df$`Battlerite 4` <- factor(df$`Battlerite 4`)
+    df$`Battlerite 5` <- factor(df$`Battlerite 5`)
+    df$Team_Comp <- factor(df$Team_Comp)
+    df$Enemy_Comp <- factor(df$Enemy_Comp)
+    df$Title <- factor(df$Title)
+    df$Avatar <- factor(df$Avatar)
+    df$Date <- factor(df$Date)
+    df$User_ID <- as.character(df$User_ID)
+    
+    #Put Change Server_Type variable to show 2v2, 3v3, solo queue
+    df <- mutate(df, Server_Type = ifelse(Solo_Queue == 1 & Match_Type == 'LEAGUE3V3', 'Solo Queue', 
+                                          ifelse(Server_Type == 'QUICK3V3', '3V3',
+                                                 ifelse(Server_Type == 'QUICK2V2', '2V2', Server_Type))))
+    df$Server_Type <- factor(df$Server_Type)
+    
+    #Convert 'None' to 'Unranked' - there should only be ranked or unranked
+    df <- mutate(df, Ranking_Type = ifelse(Ranking_Type == 'NONE', 'UNRANKED', Ranking_Type))
+    df$Ranking_Type <- factor(df$Ranking_Type)
+    
+    #Add bot player_type information. If outfit is a blank, is a bot (All default battlerites selected for all players
+    #With blank outfits for all champions) Or mount is blank, is a bot
+    df <- mutate(df, Player_Type = ifelse(is.na(Outfit) | is.na(Mount), 'BOT', 'PLAYER'))
+    df$Player_Type <- factor(df$Player_Type)
+    
+    #Bots use default outfits except for mounta, fill in blanks with defaults
+    #Bots can also have no mount recorded, fill in blank with RAM
+    df <- mutate(df, Outfit = ifelse(is.na(Outfit), 'DEFAULT OUTFIT', Outfit),
+                 Attachment = ifelse(is.na(Attachment), 'DEFAULT WEAPON', Attachment),
+                 Pose = ifelse(is.na(Pose), 'DEFAULT POSE', Pose),
+                 Mount = ifelse(is.na(Mount), 'RAM', Mount))
+    
+    df$Outfit <- factor(df$Outfit)
+    df$Mount <- factor(df$Mount)
+    df$Attachment <- factor(df$Attachment)
+    df$Pose <- factor(df$Pose)
+    
+    #Convert > 200 ping to 200 ping
+    df <- mutate(df, Ping = 10*round(Ping/10))
+    df <- mutate(df, Ping = ifelse(is.na(Ping), -1, ifelse(Ping > 200, 1000, Ping)))
+    df$Ping <- as.character(df$Ping)
+    df <- mutate(df, Ping = ifelse(Ping == '-1', 'Unknown', ifelse(Ping == 1000, 'Time out', Ping)))
+    
+    df$Ping <- factor(df$Ping, levels = c('0', '10', '20', '30', '40', '50', '60', '70', '80', '90', '100',
+                                          '110', '120', '130', '140', '150', '160', '170', '180', '190', '200',
+                                          'Time out', 'Unknown'))
+    
+    #Convert blank queue times to 0 (bots)
+    df <- mutate(df, Queue_Time = ifelse(is.na(Queue_Time), 0, Queue_Time))
+    
+    #Round dates to days
+    df <- mutate(df, Date = substr(Date, 1, 10))
+    
+    #Count only each combination once in one specific order
+    df$Team_Roles <- sapply(df$Team_Roles, function(x) strsplit(x, ", "))
+    df$Team_Roles <- sapply(df$Team_Roles, function(x) paste(sort(x), collapse = ' '))
+    df$Team_Roles <- factor(df$Team_Roles)
+    df$Enemy_Roles <- sapply(df$Enemy_Roles, function(x) strsplit(x, ", "))
+    df$Enemy_Roles <- sapply(df$Enemy_Roles, function(x) paste(sort(x), collapse = ' '))
+    df$Enemy_Roles <- factor(df$Enemy_Roles)
+    df$Battlerites <- sapply(df$Battlerites, function(x) strsplit(x, ", "))
+    df$Battlerites <- names(sapply(df$Battlerites, function(x) paste(sort(x), collapse = ' ', sep = ', ')))
+    
+    df$Battlerites <- factor(df$Battlerites)
+  
+    #Convert seconds to hours and round up
+    df <- mutate(df, Total_Time_Played = ceiling(Total_Time_Played/3600),
+                 Champion_Time_Played = ceiling(Champion_Time_Played/3600))
+    
+    
+    #Group play time into buckets
+    df <- mutate(df, Total_Time_Played = ifelse(is.na(Total_Time_Played), 'Unknown', 
+                                                ifelse(Total_Time_Played <= 10, 'Under 10',
+                                                       ifelse(Total_Time_Played <= 50, '10-50',
+                                                              ifelse(Total_Time_Played <= 100, '50-100',
+                                                                     ifelse(Total_Time_Played  <= 200, '100-200',
+                                                                            ifelse(Total_Time_Played <= 500, '200-500', 'Over 500')))))),
+                 Champion_Time_Played = ifelse(is.na(Champion_Time_Played), 'Unknown', 
+                                               ifelse(Champion_Time_Played <= 10, 'Under 10',
+                                                      ifelse(Champion_Time_Played <= 50, '10-50',
+                                                             ifelse(Champion_Time_Played <= 100, '50-100',
+                                                                    ifelse(Champion_Time_Played  <= 200, '100-200',
+                                                                           ifelse(Champion_Time_Played <= 500, '200-500', 'Over 500'))))))
+    )
+    
+    df$Total_Time_Played <- factor(df$Total_Time_Played, levels = c('Under 10', '10-50', '50-100', 
+                                                                    '100-200', '200-500', 'Over 500', 'Unknown'))
+    df$Champion_Time_Played <- factor(df$Champion_Time_Played, levels = c('Under 10', '10-50', '50-100', 
+                                                                          '100-200', '200-500', 'Over 500', 'Unknown'))
+    
+    })
+    
+    df
+  })
+  
+  output$MessageDataCreated <- renderUI({
+    
+    HTML(paste0('Data created with ', dim(df())[1], ' observations.'))
+    
+    
+  })
+    
+
+    
+    #Compute total number of 'Pick' phases for pick rate. Total number of unique Game_ID's * 2
+    Total_Picks_Overall <- reactive({
+      
+      length(unique(df()$Game_ID))*2
+      
+    })
+    
+
+    
+    #Get Champion pick rate adjusted df
+    #Get total games played for each user for df for pickrateadjusted
+    User_Total_Games_df <- reactive({
+      
+      df() %>%
+        group_by(Game_ID, User_ID) %>%
+        ungroup() %>%
+        group_by(User_ID) %>%
+        summarize(Total_Games = n())
+      
+    })
+
+    
+    #Get Champion pickrate
+    Champions_Pick_Rate <- reactive({
+      
+    data <- df() %>%
+      group_by(Game_ID, User_ID, Champion) 
+    
+    data <- data %>%
+      ungroup() %>%
+      group_by(User_ID, Champion) %>%
+      summarize(Num_Picks = n())
+    
+    data <- inner_join(x = data, y = User_Total_Games_df(), by = c('User_ID' = 'User_ID'))
+    
+    categories <- unique(pull(data, Champion))
+    num_unique_users <- length(unique(data$User_ID))
+    
+    Category = c()
+    Pick_Rate = c()
+    Sample_Size = c()
+    
+    for (category in categories) {
+      
+      data2 <- filter(data, Champion == category)
+      user_pick_rates <- c()
+      
+      #Check if user has picked any other category and compute probability accordingly
+      for (userid in data2$User_ID) {
+        
+        user_filtered <- filter(data2, User_ID == userid)
+        user_pick_rate <- user_filtered$Num_Picks/user_filtered$Total_Games
+        user_pick_rates <- c(user_pick_rates, user_pick_rate)
+        
+        
+      }
+      
+      category_pick_rate <- sum(user_pick_rates)/num_unique_users
+      sample_size <- length(user_pick_rates)
+      
+      Category <- c(Category, category)
+      Pick_Rate <- c(Pick_Rate, category_pick_rate)
+      Sample_Size <- c(Sample_Size, sample_size)
+    }
+    
+    Champions_Pick_Rate <- data.frame(Category, Pick_Rate, Sample_Size, stringsAsFactors = TRUE) %>%
+      mutate(Pick_Rate = round(Pick_Rate*100,2))
+    colnames(Champions_Pick_Rate)[colnames(Champions_Pick_Rate) == 'Category'] <- 'Champion'
+    Champions_Pick_Rate$Champion <- factor(Champions_Pick_Rate$Champion)
+    
+    Champions_Pick_Rate
+    
+  })
+  
+
   
   ###############
   ###############
@@ -1684,7 +2223,8 @@ server <- function(input, output) {
   champ_df <- reactive({
     
     req(input$champion != 'None')
-    Cdf <- filter(df, Champion == input$champion)
+    req(!is.null(df()))
+    Cdf <- filter(df(), Champion == input$champion)
     print('champ df')
     #Slice Cdf to include only Battlerite columns
     Cdf2 <- Cdf[, c('Battlerite 1', 'Battlerite 2', 'Battlerite 3', 'Battlerite 4', 'Battlerite 5')]
@@ -1875,13 +2415,13 @@ server <- function(input, output) {
     if (input$measure == 'pickrate') {
       
       champ_pick_size <- dim(data)[1]
-      output <- round(champ_pick_size*100/Total_Picks_Overall, 2)
+      output <- round(champ_pick_size*100/Total_Picks_Overall(), 2)
       
     }
     
     if (input$measure == 'pickrateadjusted') {
       
-      data <- filter(Champions_Pick_Rate, Champion == input$champion)
+      data <- filter(Champions_Pick_Rate(), Champion == input$champion)
       output <- data$Pick_Rate
       
     }
@@ -3221,8 +3761,11 @@ server <- function(input, output) {
   
   stats_pre_agg <- reactive({
     
+    req(input$champion != 'None')
+    
     data <- filtered_data() %>%
-      mutate(Survived = ifelse(is.negative(Time_Alive), 1, 0)) %>%
+      mutate(Survived = ifelse(!is.na(Time_Alive),
+                               ifelse(Time_Alive < 0, 1, 0), Time_Alive)) %>%
       group_by(Game_ID, User_ID) %>%
       summarize(Game_Won = ifelse(sum(Round_Won) == 3, 1, 0),
                 Kills = mean(Kills, na.rm = TRUE),
@@ -3287,6 +3830,8 @@ server <- function(input, output) {
   
   stats_agg <- reactive({
     
+    req(input$champion != 'None')
+    
     data <- stats_pre_agg() %>%
       ungroup() %>%
       group_by(Game_Won) %>%
@@ -3313,12 +3858,13 @@ server <- function(input, output) {
                 Survived = mean(Survived),
                 Queue_Time = mean(Queue_Time))
 
-    
     data
     
   })
   
   stats_agg_lose <- reactive({
+    
+    req(input$champion != 'None')
     
     req(input$measure == 'winrate' |
         input$measure == 'winrateadjusted')
@@ -3329,11 +3875,15 @@ server <- function(input, output) {
   
   stats_agg_win <- reactive({
    
+    req(input$champion != 'None')
+    
     data <- filter(stats_agg(), Game_Won == 1)
     
   })
   
   stats_win_df <- reactive({
+    
+    req(input$champion != 'None')
     
     #Remove Game_Won column
     data <- stats_agg_win()[,2:length(stats_agg_win())]
@@ -3344,6 +3894,8 @@ server <- function(input, output) {
   })
   
   stats_lose_df <- reactive({
+    
+    req(input$champion != 'None')
     
     req(input$measure == 'winrate' |
           input$measure == 'winrateadjusted')
@@ -3357,6 +3909,8 @@ server <- function(input, output) {
   })
   
   stats_average_df <- reactive({
+    
+    req(input$champion != 'None')
     
     req(input$measure == 'pickrate' |
           input$measure == 'pickrateadjusted')
@@ -3439,7 +3993,7 @@ server <- function(input, output) {
                                         filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
                                         filter_player(), player_selection(), barplot = FALSE)
     
-    initial_text <- 'Average Stats Per Round For Game Wins'
+    initial_text <- 'Average Stats Per Round For Game Losses'
     
     if (dynamic_name == '') {
       
@@ -4559,7 +5113,7 @@ server <- function(input, output) {
         if (length(Cdf3) != 5) {
         
         #Convert character variables to numeric to apply rowsums
-        Cdf3 <- sapply(Cdf3, as.numeric)  
+        Cdf3 <- sapply(Cdf3, as.numeric)   
           
         #Group by same Battlerite name and have final unique set of battlerite choices as indicator variables
         Cdf3 <- t(rowsum(t(Cdf3), group = colnames(Cdf3)))
@@ -5101,7 +5655,7 @@ server <- function(input, output) {
       summarize(Champion_Win_Rate = round(mean(Game_Won)*100, 2),
                 Num_Games = n()) 
     
-    data <- inner_join(x = data, y = User_Total_Games_df, by = c('User_ID' = 'User_ID')) %>%
+    data <- inner_join(x = data, y = User_Total_Games_df(), by = c('User_ID' = 'User_ID')) %>%
       mutate(Pick_Rate = round(Num_Games/Total_Games*100,2)) %>%
       select(-Num_Games)
     
@@ -5211,7 +5765,7 @@ server <- function(input, output) {
   filtered_game_df <- reactive({
     req(game_selection() != 0)
     
-    data <- filter(df, Game_ID %in% game_selection())
+    data <- filter(df(), Game_ID %in% game_selection())
     data
     
   })

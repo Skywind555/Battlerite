@@ -282,7 +282,8 @@ ui <- navbarPage('Navbar',
                                               click = 'unfilterMount',
                                               hover = hoverOpts('hoverMount'),
                                               height = '600px'),
-                                   uiOutput('Mount_tooltip')
+                                   uiOutput('Mount_tooltip'),
+                                   uiOutput('Interactive_Slider_Mount')
                             ),
                             
                             column(width = 4,
@@ -291,7 +292,8 @@ ui <- navbarPage('Navbar',
                                               click = 'unfilterTitle',
                                               hover = hoverOpts('hoverTitle'),
                                               height = '600px'),
-                                   uiOutput('Title_tooltip')
+                                   uiOutput('Title_tooltip'),
+                                   uiOutput('Interactive_Slider_Title')
                             ),
                             
                             column(width = 4,
@@ -300,7 +302,8 @@ ui <- navbarPage('Navbar',
                                               click = 'unfilterAvatar',
                                               hover = hoverOpts('hoverAvatar'),
                                               height = '600px'),
-                                   uiOutput('Avatar_tooltip')
+                                   uiOutput('Avatar_tooltip'),
+                                   uiOutput('Interactive_Slider_Avatar')
                             )
                           ),
                           
@@ -567,37 +570,42 @@ server <- function(input, output) {
   pre_df <- eventReactive(
     eventExpr = input$CreateData,
     valueExpr = {
-    
-    withProgress(message = 'Reading in data', value = 0, {
       
     data <- c()
     
     if (input$FileSelectAll == 'Use all data') {
       
+      withProgress(message = 'Reading in data', value = 0, {
+      
       files <- list.files(path = 'Data', pattern = '^Jul', recursive = TRUE)
       
-      for (file in files) {
+      for (i in 1:length(files)) {
         
-        print(file)
-        data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+        data <- rbind(data, read_csv(paste0('Data/', files[i]))[, c(1:73, 112, 113)])
         
-      }
+        incProgress(1/(length(files)), detail = paste('Concatenating file', i))
+        
+      }})
       
     } else {
       
       if (input$Customize == 'Use all data from each day') {
+      
+        withProgress(message = 'Reading in data', max = length(input$FileSelectDays), value = 0, {
         
         for (day in input$FileSelectDays) {
           
           files <- list.files(path = 'Data', pattern = paste0('^Jul-', day), recursive = TRUE)
           
-          for (file in files) {
+          for (i in 1:length(files)) {
             
-            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            data <- rbind(data, read_csv(paste0('Data/', files[i]))[, c(1:73, 112, 113)])
+            
+            incProgress(1/(length(files)), detail = paste('Concatenating file', i, 'on day', day))
             
           }
           
-        }
+        }})
         
       } else {
         
@@ -795,7 +803,7 @@ server <- function(input, output) {
       }
     }
     
-    })
+    
   
   data  
     
@@ -832,7 +840,10 @@ server <- function(input, output) {
     df$`Battlerite 5` <- factor(df$`Battlerite 5`)
     df$Team_Comp <- factor(df$Team_Comp)
     df$Enemy_Comp <- factor(df$Enemy_Comp)
+
+    df <- mutate(df, Title = ifelse(is.na(Title),'Unknown',Title))
     df$Title <- factor(df$Title)
+    
     df$Avatar <- factor(df$Avatar)
     df$Date <- factor(df$Date)
     df$User_ID <- as.character(df$User_ID)
@@ -852,7 +863,7 @@ server <- function(input, output) {
     df <- mutate(df, Player_Type = ifelse(is.na(Outfit) | is.na(Mount), 'BOT', 'PLAYER'))
     df$Player_Type <- factor(df$Player_Type)
     
-    #Bots use default outfits except for mounta, fill in blanks with defaults
+    #Bots use default outfits except for mount, fill in blanks with defaults
     #Bots can also have no mount recorded, fill in blank with RAM
     df <- mutate(df, Outfit = ifelse(is.na(Outfit), 'DEFAULT OUTFIT', Outfit),
                  Attachment = ifelse(is.na(Attachment), 'DEFAULT WEAPON', Attachment),
@@ -1553,15 +1564,17 @@ server <- function(input, output) {
             
             if (x[1] == 'Battlerites') {
               
+              if (!is.null(filtered_battlerites)) {
+              
               if (length(filtered_battlerites) == 1) {
                 
                 txt <- paste0('Battlerite = ', filtered_battlerites)
                 
               } else {
                 
-                txt <- paste0('Battlerites in (', filtered_battlerites, ')')
+                txt <- paste0('Battlerites in (', toString(filtered_battlerites), ')')
                 
-              }
+              }}
               
             } else if (x[1] == 'Name'){
               
@@ -1897,7 +1910,7 @@ server <- function(input, output) {
       var2 <- as.name('Rarity')
       
     }
-      
+        
       if (variable == 'Ping') {
         
         pal = colorRampPalette(c('green', 'yellow'))
@@ -2552,7 +2565,6 @@ server <- function(input, output) {
                  label = 'Repick Battlerites')
     
   })
-  
   
   ############
   ###REGION###
@@ -3268,6 +3280,69 @@ server <- function(input, output) {
     
   })
   
+  #########################
+  ###INTERACTIVE SLIDERS###
+  #########################
+  
+  Avatar_breaks <- reactive ({
+    
+    ceiling(dim(Avatar_df())[1]/45)
+    
+  })
+  
+  output$Interactive_Slider_Avatar <- renderUI({
+    
+    req(!is.null(Avatar_df()))
+    
+      sliderInput(inputId = 'View_Avatar',
+                  label = 'Range of Avatar Data',
+                  min = 1,
+                  max = Avatar_breaks(),
+                  value = 1,
+                  step = 1)
+
+  })
+  
+  Title_breaks <- reactive({
+    
+    ceiling(dim(Title_df())[1]/45)
+    
+  })
+  
+  output$Interactive_Slider_Title <- renderUI({
+    
+    req(!is.null(Title_df()))
+    
+    sliderInput(inputId = 'View_Title',
+                label = 'Range of Title Data',
+                min = 1,
+                max = Title_breaks(),
+                value = 1,
+                step = 1)
+    
+  })
+  
+  Mount_breaks <- reactive({
+    
+    ceiling(dim(Mount_df())[1]/45)
+    
+  })
+  
+  output$Interactive_Slider_Mount <- renderUI({
+    
+    req(!is.null(Mount_df()))
+    
+    sliderInput(inputId = 'View_Mount',
+                label = 'Range of Mount Data',
+                min = 1,
+                max = Mount_breaks(),
+                value = 1,
+                step = 1)
+    
+  })
+  
+  
+  
   ############
   ###AVATAR###
   ############
@@ -3284,6 +3359,38 @@ server <- function(input, output) {
                        'Avatar',
                        TRUE)
     })
+  
+  Avatar_split_df <- reactive({
+    
+    req(!is.null(Avatar_df()))
+    req(!is.null(input$View_Avatar))
+    req(Avatar_breaks() > 1)
+    
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+      
+      data <- arrange(Avatar_df(), desc(Win_Rate))
+      
+    } else {
+      
+      data <- arrange(Avatar_df(), desc(Pick_Rate))
+      
+    }
+    
+    
+    if (input$View_Avatar == Avatar_breaks()) {
+      
+      data <- data[(45*(input$View_Avatar-1)+1):dim(data)[1],]
+      
+    } else {
+    
+      data <- data[(45*(input$View_Avatar-1)+1):(input$View_Avatar*45),]
+      
+    }
+    
+    data
+    
+  })
   
   #Filter Avatar observe event
   observeEvent(
@@ -3309,7 +3416,20 @@ server <- function(input, output) {
   
   output$Avatar <- renderPlot({
     
-    create_barplot(Avatar_df(), 'Avatar', input$measure,
+    if (Avatar_breaks() > 1) {
+      
+      bar <- create_barplot(Avatar_split_df(), 'Avatar', input$measure,
+                     filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                     filtered_League(), filtered_Servertype(), filtered_Map(),
+                     filtered_Casual(), filtered_Mount(), filtered_Title(),
+                     filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                     filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                     filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                     filter_player(), player_selection())
+      
+    } else {
+    
+    bar <- create_barplot(Avatar_df(), 'Avatar', input$measure,
                    filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
                    filtered_League(), filtered_Servertype(), filtered_Map(),
                    filtered_Casual(), filtered_Mount(), filtered_Title(),
@@ -3317,6 +3437,10 @@ server <- function(input, output) {
                    filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                    filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
                    filter_player(), player_selection())
+   
+    }
+    
+    bar
     
   })
   
@@ -3325,8 +3449,17 @@ server <- function(input, output) {
     
     req(!is.null(input$hoverAvatar))
     
+    if (Avatar_breaks() > 1) {
+     
+      info <- create_tooltip(input$hoverAvatar, Avatar_split_df(), Avatar_split_df()$Avatar, 
+                             input$measure, 40, -30)
+       
+    } else {
+    
     info <- create_tooltip(input$hoverAvatar, Avatar_df(), Avatar_df()$Avatar, 
                            input$measure, 40, -30)
+    
+    }
     selected_avatar <- info$Name
     filename <- filter(avatar_crosswalk, Value == selected_avatar)$`Avatar File Name`
     imagelink <- paste0('https://github.com/Skywind555/Personal-Projects/blob/master/ImagesConverted/', 
@@ -3358,6 +3491,37 @@ server <- function(input, output) {
                                    'Title',
                                    TRUE)})
   
+  Title_split_df <- reactive({
+    
+    req(!is.null(Title_df()))
+    req(!is.null(input$View_Title))
+    req(Title_breaks() > 1)
+    
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+      
+      data <- arrange(Title_df(), desc(Win_Rate))
+      
+    } else {
+      
+      data <- arrange(Title_df(), desc(Pick_Rate))
+      
+    }
+    
+    if (input$View_Title == Title_breaks()) {
+      
+      data <- data[(45*(input$View_Title-1)+1):dim(data)[1],]
+      
+    } else {
+      
+      data <- data[(45*(input$View_Title-1)+1):(input$View_Title*45),]
+      
+    }
+    
+    data
+    
+  })
+  
   #Filter Title observe event
   observeEvent(
     eventExpr = input$filterTitle,
@@ -3382,6 +3546,19 @@ server <- function(input, output) {
   
   output$Title <- renderPlot({
     
+    if (Title_breaks() > 1) {
+      
+      create_barplot(Title_split_df(), 'Title', input$measure,
+                     filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                     filtered_League(), filtered_Servertype(), filtered_Map(),
+                     filtered_Casual(), filtered_Mount(), filtered_Title(),
+                     filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                     filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                     filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                     filter_player(), player_selection())
+      
+    } else {
+    
     create_barplot(Title_df(), 'Title', input$measure,
                    filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
                    filtered_League(), filtered_Servertype(), filtered_Map(),
@@ -3390,14 +3567,25 @@ server <- function(input, output) {
                    filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                    filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
                    filter_player(), player_selection())
+      
+    }
     
   })
   
   #Title hover label
   output$Title_tooltip <- renderUI({
     
+    if (Title_breaks() > 1) {
+      
+      info <- create_tooltip(input$hoverTitle, Title_split_df(), Title_split_df()$Title, 
+                             input$measure, 40, -30)
+      
+    } else {
+    
     info <- create_tooltip(input$hoverTitle, Title_df(), Title_df()$Title, 
                            input$measure, 40, -30)
+    
+    }
     
     if (!is.null(info$Value)) {
       
@@ -3410,6 +3598,146 @@ server <- function(input, output) {
     
   })
   
+  ###########
+  ###MOUNT###
+  ###########
+  
+  pre_agg_mount <- reactive({pre_agg(filtered_data(),
+                                     input$measure,
+                                     'Mount',
+                                     FALSE)})
+  
+  Mount_df <- reactive({
+    data <- common_agg(pre_agg_mount(),
+                       input$measure,
+                       'Mount',
+                       TRUE)
+    
+    
+    
+    mount_crosswalk$Value <- factor(mount_crosswalk$Value, levels = levels(data$Mount))
+    
+    if (input$measure != 'pickrateadjusted') {
+      
+      data <- inner_join(x = data, y = mount_crosswalk, by = c('Mount' = 'Value'))[-5] 
+      
+    } else {
+      
+      data <- inner_join(x = data, y = mount_crosswalk, by = c('Mount' = 'Value'))[-4]
+      
+    }
+    
+    data$Rarity <- factor(data$Rarity, levels = c('Common', 'Rare', 'Epic', 'Legendary'))
+    data <- data[!duplicated(data$Mount),]
+    data
+    
+  })
+  
+  Mount_split_df <- reactive({
+    
+    req(!is.null(Mount_df()))
+    req(!is.null(input$View_Mount))
+    req(Mount_breaks() > 1)
+    
+    if (input$measure == 'winrate' |
+        input$measure == 'winrateadjusted') {
+      
+      data <- arrange(Mount_df(), desc(Win_Rate))
+      
+    } else {
+      
+      data <- arrange(Mount_df(), desc(Pick_Rate))
+      
+    }
+    
+    if (input$View_Mount == Mount_breaks()) {
+      
+      data <- data[(45*(input$View_Mount-1)+1):dim(data)[1],]
+      
+    } else {
+      
+      data <- data[(45*(input$View_Mount-1)+1):(input$View_Mount*45),]
+      
+    }
+    
+    data
+    
+  })
+  
+  #Filter Mount observe event
+  observeEvent(
+    eventExpr = input$filterMount,
+    handlerExpr = {
+      
+      OE_Filter_common(Mount_df(), filtered_Mount, input$filterMount$y, 'Mount')
+      
+    }
+  )
+  
+  #Unfilter Mount event
+  observeEvent(
+    eventExpr = input$unfilterMount,
+    handlerExpr = {
+      
+      filtered_Mount(0)
+      
+    }
+  )
+  
+  #Create barplot
+  
+  output$Mount <- renderPlot({
+    
+    if (Mount_breaks() > 1) {
+      
+      create_barplot(Mount_split_df(), 'Mount', input$measure,
+                     filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                     filtered_League(), filtered_Servertype(), filtered_Map(),
+                     filtered_Casual(), filtered_Mount(), filtered_Title(),
+                     filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                     filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                     filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                     filter_player(), player_selection())
+      
+    } else {
+    
+    create_barplot(Mount_df(), 'Mount', input$measure,
+                   filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
+                   filtered_League(), filtered_Servertype(), filtered_Map(),
+                   filtered_Casual(), filtered_Mount(), filtered_Title(),
+                   filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
+                   filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
+                   filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
+                   filter_player(), player_selection())
+    
+    }
+  })
+  
+  #Mount hover label
+  output$Mount_tooltip <- renderUI({
+    
+    if (Mount_breaks() > 1) {
+      
+      info <- create_tooltip(input$hoverMount, Mount_split_df(), Mount_split_df()$Mount,
+                             input$measure, 40, -30)
+      
+    } else {
+    
+    info <- create_tooltip(input$hoverMount, Mount_df(), Mount_df()$Mount,
+                           input$measure, 40, -30)
+    
+    }
+    
+    if (!is.null(info$Value)) {
+      
+      wellPanel(
+        style = info$style,
+        p(HTML(paste0("<font size = '1'>Value: ", info$Value, "<br/>Sample Size: ", info$Size, "</font>")))
+      )
+      
+    }
+    
+  })
   
   
   ############
@@ -3582,93 +3910,6 @@ server <- function(input, output) {
     }
     
   })
-  
-  ###########
-  ###MOUNT###
-  ###########
-  
-  pre_agg_mount <- reactive({pre_agg(filtered_data(),
-                                     input$measure,
-                                     'Mount',
-                                     FALSE)})
-  
-  Mount_df <- reactive({
-    data <- common_agg(pre_agg_mount(),
-                       input$measure,
-                       'Mount',
-                       TRUE)
-    
-    mount_crosswalk$Value <- factor(mount_crosswalk$Value, levels = levels(data$Mount))
-    
-    if (input$measure != 'pickrateadjusted') {
-      
-      data <- inner_join(x = data, y = mount_crosswalk, by = c('Mount' = 'Value'))[-5] 
-      
-    } else {
-      
-      data <- inner_join(x = data, y = mount_crosswalk, by = c('Mount' = 'Value'))[-4]
-      
-    }
-    
-    data$Rarity <- factor(data$Rarity, levels = c('Common', 'Rare', 'Epic', 'Legendary'))
-    data <- data[!duplicated(data$Mount),]
-    data
-    
-  })
-  
-  #Filter Mount observe event
-  observeEvent(
-    eventExpr = input$filterMount,
-    handlerExpr = {
-      
-      OE_Filter_common(Mount_df(), filtered_Mount, input$filterMount$y, 'Mount')
-      
-    }
-  )
-  
-  #Unfilter Mount event
-  observeEvent(
-    eventExpr = input$unfilterMount,
-    handlerExpr = {
-      
-      filtered_Mount(0)
-      
-    }
-  )
-  
-  #Create barplot
-  
-  output$Mount <- renderPlot({
-    
-    create_barplot(Mount_df(), 'Mount', input$measure,
-                   filtered_Totaltime(), filtered_Championtime(), filtered_Region(),
-                   filtered_League(), filtered_Servertype(), filtered_Map(),
-                   filtered_Casual(), filtered_Mount(), filtered_Title(),
-                   filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
-                   filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
-                   filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                   filter_player(), player_selection())
-    
-  })
-  
-  #Mount hover label
-  output$Mount_tooltip <- renderUI({
-    
-    info <- create_tooltip(input$hoverMount, Mount_df(), Mount_df()$Mount,
-                           input$measure, 40, -30)
-    
-    if (!is.null(info$Value)) {
-      
-      wellPanel(
-        style = info$style,
-        p(HTML(paste0("<font size = '1'>Value: ", info$Value, "<br/>Sample Size: ", info$Size, "</font>")))
-      )
-      
-    }
-    
-  })
-  
-  
   
   ##########
   ###POSE###

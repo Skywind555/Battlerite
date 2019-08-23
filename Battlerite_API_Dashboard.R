@@ -614,48 +614,64 @@ server <- function(input, output) {
         if(input$Day10 == 'Use all data') {
           
           files <- list.files(path = 'Data', pattern = '^Jul-10', recursive = TRUE)
+         
+           withProgress(message = 'Reading in Day 10', value = 0, {
           
-          for (file in files) {
+          for (i in 1:length(files)) {
             
             data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
             
-          }
+            incProgress(1/length(files), detail = paste('Concatenating file', i))
+            
+          }})
           
         } else {
           
           if(!is.null(input$Day10Customize)) {
+            
+            withProgress(message = 'Reading in Day 10', value = 0, {
           
-          for (file in input$Day10Customize) {
+          for (i in 1:length(input$Day10Customize)) {
             
             data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
             
-          }}
+            incProgress(1/length(input$Day10Customize), detail = paste('Concatenating file', i))
+            
+          }})}
           
         }}
         
         if(!is.null(input$Day11)) {
-        
-        if(input$Day11 == 'Use all data') {
           
-          files <- list.files(path = 'Data', pattern = '^Jul-11', recursive = TRUE)
-          
-          for (file in files) {
+          if(input$Day11 == 'Use all data') {
             
-            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            files <- list.files(path = 'Data', pattern = '^Jul-11', recursive = TRUE)
             
-          }
-          
-        } else {
-          
-          if(!is.null(input$Day11Customize)) {
-          
-          for (file in input$Day11Customize) {
+            withProgress(message = 'Reading in Day 11', value = 0, {
+              
+              for (i in 1:length(files)) {
+                
+                data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+                
+                incProgress(1/length(files), detail = paste('Concatenating file', i))
+                
+              }})
             
-            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+          } else {
+            
+            if(!is.null(input$Day11Customize)) {
+              
+              withProgress(message = 'Reading in Day 11', value = 0, {
+                
+                for (i in 1:length(input$Day11Customize)) {
+                  
+                  data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+                  
+                  incProgress(1/length(input$Day11Customize), detail = paste('Concatenating file', i))
+                  
+                }})}
             
           }}
-          
-        }}
         
         if(!is.null(input$Day12)) {
         
@@ -663,143 +679,191 @@ server <- function(input, output) {
           
           files <- list.files(path = 'Data', pattern = '^Jul-12', recursive = TRUE)
           
-          for (file in files) {
+          withProgress(message = 'Reading in Day 12', value = 0, {
             
-            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
-            
-          }
+            for (i in 1:length(files)) {
+              
+              data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+              
+              incProgress(1/length(files), detail = paste('Concatenating file', i))
+              
+            }})
           
         } else {
           
           if(!is.null(input$Day12Customize)) {
-          
-          for (file in input$Day12Customize) {
             
-            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
-            
-          }}
+            withProgress(message = 'Reading in Day 12', value = 0, {
+              
+              for (i in 1:length(input$Day12Customize)) {
+                
+                data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+                
+                incProgress(1/length(input$Day12Customize), detail = paste('Concatenating file', i))
+                
+              }})}
           
         }}
         
-        if(!is.null(input$Day13)) {
+      if(!is.null(input$Day13)) {
         
-        if(input$Day13 == 'Use all data') {
-          
-          files <- list.files(path = 'Data', pattern = '^Jul-13', recursive = TRUE)
-          
-          for (file in files) {
-            
-            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
-            
-          }
-          
-        } else {
-          
-          if(!is.null(input$Day13Customize)) {
-          
-          for (file in input$Day13Customize) {
-            
-            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
-            
-          }}
-          
-        }}
+      if(input$Day13 == 'Use all data') {
         
-        if(!is.null(input$Day14)) {
+        files <- list.files(path = 'Data', pattern = '^Jul-13', recursive = TRUE)
         
-        if(input$Day14 == 'Use all data') {
+        withProgress(message = 'Reading in Day 13', value = 0, {
           
-          files <- list.files(path = 'Data', pattern = '^Jul-14', recursive = TRUE)
-          
-          for (file in files) {
+          for (i in 1:length(files)) {
             
             data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
             
-          }
+            incProgress(1/length(files), detail = paste('Concatenating file', i))
+            
+          }})
+        
+      } else {
+        
+        if(!is.null(input$Day13Customize)) {
           
-        } else {
+          withProgress(message = 'Reading in Day 13', value = 0, {
+            
+            for (i in 1:length(input$Day13Customize)) {
+              
+              data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+              
+              incProgress(1/length(input$Day13Customize), detail = paste('Concatenating file', i))
+              
+            }})}
+        
+      }}
+        
+    if(!is.null(input$Day14)) {
+        
+    if(input$Day14 == 'Use all data') {
+      
+      files <- list.files(path = 'Data', pattern = '^Jul-14', recursive = TRUE)
+      
+      withProgress(message = 'Reading in Day 14', value = 0, {
+        
+        for (i in 1:length(files)) {
           
-          if(!is.null(input$Day14Customize)) {
+          data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
           
-          for (file in input$Day14Customize) {
+          incProgress(1/length(files), detail = paste('Concatenating file', i))
+          
+        }})
+      
+    } else {
+      
+      if(!is.null(input$Day14Customize)) {
+        
+        withProgress(message = 'Reading in Day 14', value = 0, {
+          
+          for (i in 1:length(input$Day14Customize)) {
             
             data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
             
-          }}
-          
-        }}
+            incProgress(1/length(input$Day14Customize), detail = paste('Concatenating file', i))
+            
+          }})}
+      
+    }}
         
         if(!is.null(input$Day15)) {
-        
-        if(input$Day15 == 'Use all data') {
           
-          files <- list.files(path = 'Data', pattern = '^Jul-15', recursive = TRUE)
-          
-          for (file in files) {
+          if(input$Day15 == 'Use all data') {
             
-            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            files <- list.files(path = 'Data', pattern = '^Jul-15', recursive = TRUE)
             
-          }
-          
-        } else {
-          
-          if(!is.null(input$Day15Customize)) {
-          
-          for (file in input$Day15Customize) {
+            withProgress(message = 'Reading in Day 15', value = 0, {
+              
+              for (i in 1:length(files)) {
+                
+                data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+                
+                incProgress(1/length(files), detail = paste('Concatenating file', i))
+                
+              }})
             
-            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+          } else {
+            
+            if(!is.null(input$Day15Customize)) {
+              
+              withProgress(message = 'Reading in Day 15', value = 0, {
+                
+                for (i in 1:length(input$Day15Customize)) {
+                  
+                  data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+                  
+                  incProgress(1/length(input$Day15Customize), detail = paste('Concatenating file', i))
+                  
+                }})}
             
           }}
-          
-        }}
         
         if(!is.null(input$Day16)) {
-        
-        if(input$Day16 == 'Use all data') {
           
-          files <- list.files(path = 'Data', pattern = '^Jul-16', recursive = TRUE)
-          
-          for (file in files) {
+          if(input$Day16 == 'Use all data') {
             
-            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            files <- list.files(path = 'Data', pattern = '^Jul-16', recursive = TRUE)
             
-          }
-          
-        } else {
-          
-          if(!is.null(input$Day16Customize)) {
-          
-          for (file in input$Day16Customize) {
+            withProgress(message = 'Reading in Day 16', value = 0, {
+              
+              for (i in 1:length(files)) {
+                
+                data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+                
+                incProgress(1/length(files), detail = paste('Concatenating file', i))
+                
+              }})
             
-            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+          } else {
+            
+            if(!is.null(input$Day16Customize)) {
+              
+              withProgress(message = 'Reading in Day 16', value = 0, {
+                
+                for (i in 1:length(input$Day16Customize)) {
+                  
+                  data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+                  
+                  incProgress(1/length(input$Day16Customize), detail = paste('Concatenating file', i))
+                  
+                }})}
             
           }}
-          
-        }}
         
         if(!is.null(input$Day17)) {
-        
-        if(input$Day17 == 'Use all data') {
           
-          files <- list.files(path = 'Data', pattern = '^Jul-17', recursive = TRUE)
-          
-          for (file in files) {
+          if(input$Day17 == 'Use all data') {
             
-            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            files <- list.files(path = 'Data', pattern = '^Jul-17', recursive = TRUE)
             
-          }
-          
-        } else {
-          
-          if(!is.null(input$Day17Customize)) {
-          
-          for (file in input$Day17Customize) {
+            withProgress(message = 'Reading in Day 17', value = 0, {
+              
+              for (i in 1:length(files)) {
+                
+                data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+                
+                incProgress(1/length(files), detail = paste('Concatenating file', i))
+                
+              }})
             
-            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+          } else {
+            
+            if(!is.null(input$Day17Customize)) {
+              
+              withProgress(message = 'Reading in Day 17', value = 0, {
+                
+                for (i in 1:length(input$Day17Customize)) {
+                  
+                  data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+                  
+                  incProgress(1/length(input$Day17Customize), detail = paste('Concatenating file', i))
+                  
+                }})}
             
           }}
-          
-        }}
       }
     }
     
@@ -815,9 +879,11 @@ server <- function(input, output) {
   
   df <- reactive({
     
-    withProgress(message = 'Data processing', value = 0, {
+    withProgress(message = 'Data processing', value = 0, max = 34, {
     
     df <- pre_df()
+    
+    incProgress(1, detail = 'Adding Coordinates')
     
     df$Map <- factor(df$Map)
     df$Champion <- factor(df$Champion)
@@ -840,13 +906,17 @@ server <- function(input, output) {
     df$`Battlerite 5` <- factor(df$`Battlerite 5`)
     df$Team_Comp <- factor(df$Team_Comp)
     df$Enemy_Comp <- factor(df$Enemy_Comp)
-
+    
+    incProgress(1, detail = 'Filling in NA values for Title')
+    
     df <- mutate(df, Title = ifelse(is.na(Title),'Unknown',Title))
     df$Title <- factor(df$Title)
     
     df$Avatar <- factor(df$Avatar)
     df$Date <- factor(df$Date)
     df$User_ID <- as.character(df$User_ID)
+    
+    incProgress(1, detail = 'Changing various values in various variables and grouping ping into buckets')
     
     #Put Change Server_Type variable to show 2v2, 3v3, solo queue
     df <- mutate(df, Server_Type = ifelse(Solo_Queue == 1 & Match_Type == 'LEAGUE3V3', 'Solo Queue', 
@@ -885,6 +955,8 @@ server <- function(input, output) {
                                           '110', '120', '130', '140', '150', '160', '170', '180', '190', '200',
                                           'Time out', 'Unknown'))
     
+    incProgress(10, detail = 'Converting values in Team_Roles to act as a set')
+    
     #Convert blank queue times to 0 (bots)
     df <- mutate(df, Queue_Time = ifelse(is.na(Queue_Time), 0, Queue_Time))
     
@@ -895,14 +967,22 @@ server <- function(input, output) {
     df$Team_Roles <- sapply(df$Team_Roles, function(x) strsplit(x, ", "))
     df$Team_Roles <- sapply(df$Team_Roles, function(x) paste(sort(x), collapse = ' '))
     df$Team_Roles <- factor(df$Team_Roles)
+    
+    incProgress(10, detail = 'Converting values in Enemy_Roles to act as a set')
+    
     df$Enemy_Roles <- sapply(df$Enemy_Roles, function(x) strsplit(x, ", "))
     df$Enemy_Roles <- sapply(df$Enemy_Roles, function(x) paste(sort(x), collapse = ' '))
     df$Enemy_Roles <- factor(df$Enemy_Roles)
+    
+    incProgress(10, detail = 'Converting values in Battlerites to act as a set')
+    
     df$Battlerites <- sapply(df$Battlerites, function(x) strsplit(x, ", "))
     df$Battlerites <- names(sapply(df$Battlerites, function(x) paste(sort(x), collapse = ' ', sep = ', ')))
     
     df$Battlerites <- factor(df$Battlerites)
-  
+    
+    incProgress(1, detail = 'Grouping Total_Time_Played and Champion_Time_Played into buckets')
+    
     #Convert seconds to hours and round up
     df <- mutate(df, Total_Time_Played = ceiling(Total_Time_Played/3600),
                  Champion_Time_Played = ceiling(Champion_Time_Played/3600))
@@ -927,6 +1007,10 @@ server <- function(input, output) {
                                                                     '100-200', '200-500', 'Over 500', 'Unknown'))
     df$Champion_Time_Played <- factor(df$Champion_Time_Played, levels = c('Under 10', '10-50', '50-100', 
                                                                           '100-200', '200-500', 'Over 500', 'Unknown'))
+    
+    #Drop Duplicate rows of data (data collection error)
+    df <- distinct(df, Game_ID, User_ID, Round, .keep_all = TRUE)
+    
     
     })
     
@@ -967,6 +1051,10 @@ server <- function(input, output) {
     #Get Champion pickrate
     Champions_Pick_Rate <- reactive({
       
+      withProgress(message = 'Computing Champion_Pick_Rate', max = 28.3, value = 0, {
+        
+        incProgress(.2, detail = 'Preliminary Calculations')
+      
     data <- df() %>%
       group_by(Game_ID, User_ID, Champion) 
     
@@ -985,6 +1073,8 @@ server <- function(input, output) {
     Sample_Size = c()
     
     for (category in categories) {
+      
+      incProgress(1, detail = paste('Finding Pick_Rate for', category))
       
       data2 <- filter(data, Champion == category)
       user_pick_rates <- c()
@@ -1005,12 +1095,17 @@ server <- function(input, output) {
       Category <- c(Category, category)
       Pick_Rate <- c(Pick_Rate, category_pick_rate)
       Sample_Size <- c(Sample_Size, sample_size)
+      
     }
+    
+    incProgress(0.1, detail = 'Creating dataframe')
     
     Champions_Pick_Rate <- data.frame(Category, Pick_Rate, Sample_Size, stringsAsFactors = TRUE) %>%
       mutate(Pick_Rate = round(Pick_Rate*100,2))
     colnames(Champions_Pick_Rate)[colnames(Champions_Pick_Rate) == 'Category'] <- 'Champion'
     Champions_Pick_Rate$Champion <- factor(Champions_Pick_Rate$Champion)
+    
+      })
     
     Champions_Pick_Rate
     

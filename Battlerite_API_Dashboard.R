@@ -105,21 +105,24 @@ ui <- navbarPage('Navbar',
                                                 label = 'Measure',
                                                 choices = c('Win Rate' = 'winrate',
                                                             'Win Rate(Adjusted)' = 'winrateadjusted',
-                                                            'Pick Rate' = 'pickrate',
-                                                            'Pick Rate(Adjusted)' = 'pickrateadjusted'))
+                                                            'Pick Rate' = 'pickrate'))
                             ),
                             
                             column(width = 4,
                                    uiOutput(outputId = 'ChampImage')),
                             
                             column(width = 4,
-                                   htmlOutput('OverallMeasure'))
+                                   htmlOutput('OverallMeasure'),
+                                   uiOutput('Pick_Rate_Adjusted_OverallMeasure'),
+                                   uiOutput('Pick_Rate_OverallMeasure'))
                           ),
                           
                           fluidRow(
                             column(width = 12,
                                    div(DT::dataTableOutput('RegionGroup'), style = "font-size:75%"),
-                                   uiOutput(outputId = 'Interactive_Unfilter_RegionGroup')
+                                   uiOutput(outputId = 'Interactive_Unfilter_RegionGroup'),
+                                   uiOutput('Pick_Rate_Adjusted_RegionGroup'),
+                                   uiOutput('Pick_Rate_RegionGroup')
                             )
                           ),
                           
@@ -127,7 +130,9 @@ ui <- navbarPage('Navbar',
                             column(width = 12,
                                    htmlOutput('Chosen_Region'),
                                    leafletOutput(outputId = 'Region'),
-                                   uiOutput(outputId = 'Interactive_Unfilter_Region')
+                                   uiOutput(outputId = 'Interactive_Unfilter_Region'),
+                                   uiOutput('Pick_Rate_Adjusted_Region'),
+                                   uiOutput('Pick_Rate_Region')
                             )
                           ),
                           
@@ -138,7 +143,9 @@ ui <- navbarPage('Navbar',
                                               click = 'unfilterTotalTime',
                                               hover = hoverOpts('hoverTotalTime'),
                                               height = '300px'),
-                                   uiOutput('TotalTime_tooltip')
+                                   uiOutput('TotalTime_tooltip'),
+                                   uiOutput('Pick_Rate_Adjusted_TotalTime'),
+                                   uiOutput('Pick_Rate_TotalTime')
                             ),
                             column(width = 6,
                                    plotOutput(outputId = 'ChampionTime',
@@ -146,13 +153,17 @@ ui <- navbarPage('Navbar',
                                               click = 'unfilterChampionTime',
                                               hover = hoverOpts('hoverChampionTime'),
                                               height = '300px'),
-                                   uiOutput('ChampionTime_tooltip')
+                                   uiOutput('ChampionTime_tooltip'),
+                                   uiOutput('Pick_Rate_Adjusted_ChampionTime'),
+                                   uiOutput('Pick_Rate_ChampionTime')
                             )
                           
                           ),
                           
                           fluidRow(
-                            htmlOutput('BestOverallBattlerites')
+                            htmlOutput('BestOverallBattlerites'),
+                            uiOutput('Pick_Rate_Adjusted_BestOverallBattlerites'),
+                            uiOutput('Pick_Rate_BestOverallBattlerites')
                           ),
                           
                           fluidRow(
@@ -164,7 +175,9 @@ ui <- navbarPage('Navbar',
                                                 dblclick = 'filterBattlerites',
                                                 hover = hoverOpts('hoverBattlerites'),
                                                 height = '600px'),
-                                     uiOutput('Battlerites_tooltip')
+                                     uiOutput('Battlerites_tooltip'),
+                                     uiOutput('Pick_Rate_Adjusted_Battlerites'),
+                                     uiOutput('Pick_Rate_Battlerites')
                                    )
                             ),
                             
@@ -175,7 +188,9 @@ ui <- navbarPage('Navbar',
                                                        click = 'unfilterLeague',
                                                        hover = hoverOpts('hoverLeague'),
                                                        height = '300px'),
-                                            uiOutput('League_tooltip')
+                                            uiOutput('League_tooltip'),
+                                            uiOutput('Pick_Rate_Adjusted_League'),
+                                            uiOutput('Pick_Rate_League')
                                    ),
                                    fluidRow(width = 6,
                                             plotOutput(outputId = 'ServerType',
@@ -183,7 +198,9 @@ ui <- navbarPage('Navbar',
                                                        click = 'unfilterServerType',
                                                        hover = hoverOpts('hoverServerType'),
                                                        height = '300px'),
-                                            uiOutput('ServerType_tooltip')
+                                            uiOutput('ServerType_tooltip'),
+                                            uiOutput('Pick_Rate_Adjusted_ServerType'),
+                                            uiOutput('Pick_Rate_ServerType')
                                    )
                             )
                           ),
@@ -195,14 +212,20 @@ ui <- navbarPage('Navbar',
                                               click = 'unfilterPlayerType',
                                               hover = hoverOpts('hoverPlayerType'),
                                               height = '300px'),
-                                   uiOutput('PlayerType_tooltip')),
+                                   uiOutput('PlayerType_tooltip'),
+                                   uiOutput('Pick_Rate_Adjusted_PlayerType'),
+                                   uiOutput('Pick_Rate_PlayerType')),
+                            
+
                             column(width = 6,
                                    plotOutput(outputId = 'Date',
                                               dblclick = 'filterDate',
                                               click = 'unfilterDate',
                                               hover = hoverOpts('hoverDate'),
                                               height = '300px'),
-                                   uiOutput('Date_tooltip'))
+                                   uiOutput('Date_tooltip'),
+                                   uiOutput('Pick_Rate_Adjusted_Date'),
+                                   uiOutput('Pick_Rate_Date'))
                           ),
                           
                           fluidRow(
@@ -213,7 +236,9 @@ ui <- navbarPage('Navbar',
                                                 click = 'unfilterMap',
                                                 hover = hoverOpts('hoverMap'),
                                                 height = '600px'),
-                                     uiOutput('Map_tooltip')
+                                     uiOutput('Map_tooltip'),
+                                     uiOutput('Pick_Rate_Adjusted_Map'),
+                                     uiOutput('Pick_Rate_Map')
                                    )
                             ),
                             
@@ -224,7 +249,9 @@ ui <- navbarPage('Navbar',
                                                        click = 'unfilterCasual',
                                                        hover = hoverOpts('hoverCasual'),
                                                        height = '300px'),
-                                            uiOutput('Casual_tooltip')
+                                            uiOutput('Casual_tooltip'),
+                                            uiOutput('Pick_Rate_Adjusted_Casual'),
+                                            uiOutput('Pick_Rate_Casual')
                                    ),
                                    fluidRow(width = 6,
                                             plotOutput(outputId = 'Ping',
@@ -232,7 +259,9 @@ ui <- navbarPage('Navbar',
                                                        click = 'unfilterPing',
                                                        hover = hoverOpts('hoverPing'),
                                                        height = '300px'),
-                                            uiOutput('Ping_tooltip')
+                                            uiOutput('Ping_tooltip'),
+                                            uiOutput('Pick_Rate_Adjusted_Ping'),
+                                            uiOutput('Pick_Rate_Ping')
                                    )
                             )
                           ),
@@ -241,7 +270,9 @@ ui <- navbarPage('Navbar',
                           fluidRow(
                             column(width = 3,
                                    htmlOutput('StatsWinLabel'),
-                                   div(DT::dataTableOutput('StatsWin'), style = "font-size:70%")
+                                   div(DT::dataTableOutput('StatsWin'), style = "font-size:70%"),
+                                   uiOutput('Pick_Rate_Adjusted_Round_Stats'),
+                                   uiOutput('Pick_Rate_Round_Stats')
                             ),
                             
                             column(width = 3,
@@ -269,7 +300,9 @@ ui <- navbarPage('Navbar',
                                             htmlOutput('WorstMatchupsLabel'),
                                             div(tableOutput('WorstMatchups'), style = "font-size:80%"))
                                    ),
-                                   fluidRow(htmlOutput('WorstAllyRoles'))
+                                   fluidRow(htmlOutput('WorstAllyRoles')),
+                                   uiOutput('Pick_Rate_Adjusted_Comps_Matchups'),
+                                   uiOutput('Pick_Rate_Comps_Matchups')
                                    
                           
                             )
@@ -283,7 +316,9 @@ ui <- navbarPage('Navbar',
                                               hover = hoverOpts('hoverMount'),
                                               height = '600px'),
                                    uiOutput('Mount_tooltip'),
-                                   uiOutput('Interactive_Slider_Mount')
+                                   uiOutput('Interactive_Slider_Mount'),
+                                   uiOutput('Pick_Rate_Adjusted_Mount'),
+                                   uiOutput('Pick_Rate_Mount')
                             ),
                             
                             column(width = 4,
@@ -293,7 +328,9 @@ ui <- navbarPage('Navbar',
                                               hover = hoverOpts('hoverTitle'),
                                               height = '600px'),
                                    uiOutput('Title_tooltip'),
-                                   uiOutput('Interactive_Slider_Title')
+                                   uiOutput('Interactive_Slider_Title'),
+                                   uiOutput('Pick_Rate_Adjusted_Title'),
+                                   uiOutput('Pick_Rate_Title')
                             ),
                             
                             column(width = 4,
@@ -303,7 +340,9 @@ ui <- navbarPage('Navbar',
                                               hover = hoverOpts('hoverAvatar'),
                                               height = '600px'),
                                    uiOutput('Avatar_tooltip'),
-                                   uiOutput('Interactive_Slider_Avatar')
+                                   uiOutput('Interactive_Slider_Avatar'),
+                                   uiOutput('Pick_Rate_Adjusted_Avatar'),
+                                   uiOutput('Pick_Rate_Avatar')
                             )
                           ),
                           
@@ -314,7 +353,9 @@ ui <- navbarPage('Navbar',
                                               click = 'unfilterOutfit',
                                               hover = hoverOpts('hoverOutfit'),
                                               height = '300px'),
-                                   uiOutput('Outfit_tooltip')
+                                   uiOutput('Outfit_tooltip'),
+                                   uiOutput('Pick_Rate_Adjusted_Outfit'),
+                                   uiOutput('Pick_Rate_Outfit')
                             ),
                             
                             column(width = 4,
@@ -323,7 +364,9 @@ ui <- navbarPage('Navbar',
                                               click = 'unfilterAttachment',
                                               hover = hoverOpts('hoverAttachment'),
                                               height = '300px'),
-                                   uiOutput('Attachment_tooltip')
+                                   uiOutput('Attachment_tooltip'),
+                                   uiOutput('Pick_Rate_Adjusted_Attachment'),
+                                   uiOutput('Pick_Rate_Attachment')
                             ),
                             
                             column(width = 4,
@@ -332,7 +375,9 @@ ui <- navbarPage('Navbar',
                                               click = 'unfilterPose',
                                               hover = hoverOpts('hoverPose'),
                                               height = '300px'),
-                                   uiOutput('Pose_tooltip')
+                                   uiOutput('Pose_tooltip'),
+                                   uiOutput('Pick_Rate_Adjusted_Pose'),
+                                   uiOutput('Pick_Rate_Pose')
                             )
                           ),
                           
@@ -913,7 +958,11 @@ server <- function(input, output) {
     df$Title <- factor(df$Title)
     
     df$Avatar <- factor(df$Avatar)
+    
+    #Round dates to days
+    df <- mutate(df, Date = substr(Date, 1, 10))
     df$Date <- factor(df$Date)
+    
     df$User_ID <- as.character(df$User_ID)
     
     incProgress(1, detail = 'Changing various values in various variables and grouping ping into buckets')
@@ -959,9 +1008,6 @@ server <- function(input, output) {
     
     #Convert blank queue times to 0 (bots)
     df <- mutate(df, Queue_Time = ifelse(is.na(Queue_Time), 0, Queue_Time))
-    
-    #Round dates to days
-    df <- mutate(df, Date = substr(Date, 1, 10))
     
     #Count only each combination once in one specific order
     df$Team_Roles <- sapply(df$Team_Roles, function(x) strsplit(x, ", "))
@@ -1324,7 +1370,7 @@ server <- function(input, output) {
   
   ###Aggregates###
   
-  pre_agg <- function(filtered_data, measure, variable, calc_baseline) {
+  pre_agg <- function(filtered_data, measure, variable, calc_baseline, pickrateadjusted) {
     
     req(!is.null(filtered_data))
     
@@ -1356,7 +1402,7 @@ server <- function(input, output) {
         data
       }
     
-    if (measure == 'pickrateadjusted') {
+    if (pickrateadjusted == 1 & measure == 'pickrate') {
       
       data <- data %>%
         ungroup() %>%
@@ -1414,12 +1460,12 @@ server <- function(input, output) {
 
   }
   
-  common_agg <- function(pre_agg_data, measure, variable, sort_descending) {
+  common_agg <- function(pre_agg_data, measure, variable, sort_descending, pickrateadjusted) {
    
     req(!is.null(pre_agg_data))
     var <- as.name(variable)
     
-    if (measure != 'pickrateadjusted') {
+    if (!(measure == 'pickrate' & pickrateadjusted == 1)) {
       
     data <- pre_agg_data %>%
       ungroup() %>%
@@ -1451,11 +1497,11 @@ server <- function(input, output) {
     
     if (variable == 'Region Group') {
       
-      if (measure == 'pickrate') {
+      if (measure == 'pickrate' & pickrateadjusted == 0) {
       
       data <- select(data, -Win_Rate)
       
-      } else if (measure != 'pickrateadjusted') {
+      } else if (measure == 'winrate' | measure == 'winrateadjusted') {
         
         data <- select(data, -Pick_Rate)
         
@@ -1471,7 +1517,7 @@ server <- function(input, output) {
   
   
   
-  region_agg <- function(filtered_data, measure) {
+  region_agg <- function(filtered_data, measure, pickrateadjusted) {
     req(!is.null(filtered_data))
 
       data <- filtered_data %>%
@@ -1489,7 +1535,7 @@ server <- function(input, output) {
         
       }
       
-      if (measure == 'pickrateadjusted') {
+      if (measure == 'pickrate' & pickrateadjusted == 1) {
         
         data2 <- data %>%
           ungroup() %>%
@@ -1542,7 +1588,7 @@ server <- function(input, output) {
       
       }
       
-      if (measure != 'pickrateadjusted') {
+      if (!(measure == 'pickrate' & pickrateadjusted == 1)) {
         data <- data %>%
           select(Region, `Region Group`, Longitude, Latitude, City, Game_Won) %>%
           group_by(Region, `Region Group`, Longitude, Latitude, City) %>%
@@ -1840,7 +1886,7 @@ server <- function(input, output) {
                                   filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
                                   filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
                                   filtered_playertype, filtered_date, filtered_battlerites, filtered_ping,
-                                  filter_player, player_selection) {
+                                  filter_player, player_selection, pickrateadjusted) {
     req(!is.null(data))
     
     if (measure == 'winrate') {
@@ -1851,7 +1897,7 @@ server <- function(input, output) {
       
       initial_name <- paste0(input_champion, ' Win Rate (Adjusted) Split by Region Group')
       
-    } else if (measure == 'pickrate') {
+    } else if (measure == 'pickrate' & pickrateadjusted == 0) {
       
       initial_name <- paste0(input_champion, ' Region Group Pick Rate')
       
@@ -1906,7 +1952,7 @@ server <- function(input, output) {
                              filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
                              filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
                              filtered_playertype, filtered_date, filtered_battlerites, filtered_ping,
-                             filter_player, player_selection) {
+                             filter_player, player_selection, pickrateadjusted) {
     req(!is.null(agg_df))
 
     var <- as.name(variable)
@@ -1920,7 +1966,7 @@ server <- function(input, output) {
       
       initial_title <- paste0(input$champion, ' Win Rate (Adjusted) Split by ', variable)
       
-    } else if (measure == 'pickrate') {
+    } else if (measure == 'pickrate' & pickrateadjusted == 0) {
       
       if (variable %in% c('Mount', 'Outfit', 'Attachment', 'Pose', 'Server_Type', 'Ranking_Type',
                           'Title', 'Avatar')) {
@@ -2125,7 +2171,7 @@ server <- function(input, output) {
                                   filtered_map, filtered_casual, filtered_mount, filtered_title, filtered_avatar,
                                   filtered_outfit, filtered_attachment, filtered_pose, filtered_regiongroup,
                                   filtered_playertype, filtered_date, filtered_battlerites, filtered_ping,
-                                  filter_player, player_selection) {
+                                  filter_player, player_selection, pickrateadjusted) {
     
     if (measure == 'winrate') {
       
@@ -2135,7 +2181,7 @@ server <- function(input, output) {
       
       txt <- paste0(input$champion, ' Win Rate (Adjusted) Split by Region')
       
-    } else if (measure == 'pickrate') {
+    } else if (measure == 'pickrate' & pickrateadjusted == 0) {
       
       txt <- paste0(input$champion, ' Region Pick Rate')
       
@@ -2320,12 +2366,7 @@ server <- function(input, output) {
     
   })
   
-  
-  
-  
-  
-  
-  
+
   #Filter on champion select first
   #Filter on initial champion select
   champ_df <- reactive({
@@ -2333,7 +2374,6 @@ server <- function(input, output) {
     req(input$champion != 'None')
     req(!is.null(df()))
     Cdf <- filter(df(), Champion == input$champion)
-    print('champ df')
     #Slice Cdf to include only Battlerite columns
     Cdf2 <- Cdf[, c('Battlerite 1', 'Battlerite 2', 'Battlerite 3', 'Battlerite 4', 'Battlerite 5')]
     
@@ -2490,6 +2530,1423 @@ server <- function(input, output) {
     
   })
   
+  ##############################
+  ###PICKRATEADJUSTED BUTTONS###
+  ##############################
+  
+  Pickrateadjusted_OverallMeasure <- reactiveVal(0)
+  Pickrateadjusted_RegionGroup <- reactiveVal(0)
+  Pickrateadjusted_Region <- reactiveVal(0)
+  Pickrateadjusted_TotalTime <- reactiveVal(0)
+  Pickrateadjusted_ChampionTime <- reactiveVal(0)
+  Pickrateadjusted_BestOverallBattlerites <- reactiveVal(0)
+  Pickrateadjusted_Battlerites <- reactiveVal(0)
+  Pickrateadjusted_League <- reactiveVal(0)
+  Pickrateadjusted_ServerType <- reactiveVal(0)
+  Pickrateadjusted_PlayerType <- reactiveVal(0)
+  Pickrateadjusted_Date <- reactiveVal(0)
+  Pickrateadjusted_Map <- reactiveVal(0)
+  Pickrateadjusted_Casual <- reactiveVal(0)
+  Pickrateadjusted_Ping <- reactiveVal(0)
+  Pickrateadjusted_Round_Stats <- reactiveVal(0)
+  Pickrateadjusted_Comps_Matchups <- reactiveVal(0)
+  Pickrateadjusted_Mount <- reactiveVal(0)
+  Pickrateadjusted_Title <- reactiveVal(0)
+  Pickrateadjusted_Avatar <- reactiveVal(0)
+  Pickrateadjusted_Outfit <- reactiveVal(0)
+  Pickrateadjusted_Attachment <- reactiveVal(0)
+  Pickrateadjusted_Pose <- reactiveVal(0)
+  
+
+  output$Pick_Rate_Adjusted_OverallMeasure <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_OverallMeasure() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_OverallMeasure_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_OverallMeasure <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_OverallMeasure() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_OverallMeasure_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #Overall measure pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_OverallMeasure_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(1)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #Overall measure pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_OverallMeasure_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      
+    }
+  )
+  
+  
+  output$Pick_Rate_Adjusted_RegionGroup <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_RegionGroup() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_RegionGroup_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_RegionGroup <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_RegionGroup() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_RegionGroup_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #Region Group pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_RegionGroup_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(1)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #Region Group pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_RegionGroup_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_RegionGroup(0)
+      
+    }
+  )
+  
+  output$Pick_Rate_Adjusted_Region <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Region() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_Region_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_Region <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Region() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_Region_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #Region pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_Region_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(1)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #Region pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_Region_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_Region(0)
+      
+    }
+  )
+  
+  output$Pick_Rate_Adjusted_TotalTime <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_TotalTime() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_TotalTime_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_TotalTime <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_TotalTime() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_TotalTime_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #TotalTime pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_TotalTime_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(1)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #TotalTime pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_TotalTime_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_TotalTime(0)
+      
+    }
+  )
+  
+  output$Pick_Rate_Adjusted_ChampionTime <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_ChampionTime() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_ChampionTime_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_ChampionTime <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_ChampionTime() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_ChampionTime_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #ChampionTime pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_ChampionTime_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(1)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #ChampionTime pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_ChampionTime_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_ChampionTime(0)
+      
+    }
+  )
+  
+  output$Pick_Rate_Adjusted_BestOverallBattlerites <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_BestOverallBattlerites() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_BestOverallBattlerites_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_BestOverallBattlerites <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_BestOverallBattlerites() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_BestOverallBattlerites_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #BestOverallBattlerites pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_BestOverallBattlerites_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(1)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #BestOverallBattlerites pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_BestOverallBattlerites_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_BestOverallBattlerites(0)
+      
+    }
+  )
+  
+  output$Pick_Rate_Adjusted_Battlerites <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Battlerites() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_Battlerites_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_Battlerites <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Battlerites() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_Battlerites_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #Battlerites pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_Battlerites_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(1)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #Battlerites pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_Battlerites_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_Battlerites(0)
+      
+    }
+  )
+  
+  output$Pick_Rate_Adjusted_League <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_League() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_League_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_League <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_League() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_League_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #League pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_League_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(1)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #League pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_League_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_League(0)
+      
+    }
+  )
+  
+  output$Pick_Rate_Adjusted_ServerType <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_ServerType() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_ServerType_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_ServerType <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_ServerType() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_ServerType_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #ServerType pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_ServerType_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(1)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #ServerType pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_ServerType_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_ServerType(0)
+      
+    }
+  )
+  
+  output$Pick_Rate_Adjusted_PlayerType <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_PlayerType() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_PlayerType_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_PlayerType <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_PlayerType() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_PlayerType_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #PlayerType pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_PlayerType_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(1)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #PlayerType pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_PlayerType_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_PlayerType(0)
+      
+    }
+  )
+  
+  output$Pick_Rate_Adjusted_Date <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Date() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_Date_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_Date <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Date() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_Date_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #Date pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_Date_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(1)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #Date pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_Date_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_Date(0)
+      
+    }
+  )
+  
+  output$Pick_Rate_Adjusted_Map <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Map() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_Map_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_Map <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Map() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_Map_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #Map pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_Map_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(1)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #Map pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_Map_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_Map(0)
+      
+    }
+  )
+  
+  output$Pick_Rate_Adjusted_Casual <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Casual() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_Casual_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_Casual <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Casual() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_Casual_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #Casual pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_Casual_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(1)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #Casual pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_Casual_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_Casual(0)
+      
+    }
+  )
+  
+  output$Pick_Rate_Adjusted_Ping <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Ping() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_Ping_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_Ping <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Ping() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_Ping_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #Ping pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_Ping_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(1)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #Ping pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_Ping_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_Ping(0)
+      
+    }
+  )
+  
+  output$Pick_Rate_Adjusted_Round_Stats <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Round_Stats() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_Round_Stats_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_Round_Stats <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Round_Stats() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_Round_Stats_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #Round_Stats pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_Round_Stats_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(1)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #Round_Stats pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_Round_Stats_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_Round_Stats(0)
+      
+    }
+  )
+ 
+  output$Pick_Rate_Adjusted_Comps_Matchups <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Comps_Matchups() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_Comps_Matchups_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_Comps_Matchups <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Comps_Matchups() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_Comps_Matchups_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #Comps_Matchups pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_Comps_Matchups_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(1)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #Comps_Matchups pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_Comps_Matchups_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_Comps_Matchups(0)
+      
+    }
+  )
+  
+  output$Pick_Rate_Adjusted_Mount <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Mount() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_Mount_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_Mount <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Mount() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_Mount_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #Mount pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_Mount_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(1)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #Mount pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_Mount_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_Mount(0)
+      
+    }
+  ) 
+  
+  output$Pick_Rate_Adjusted_Title <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Title() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_Title_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_Title <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Title() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_Title_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #Title pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_Title_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(1)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #Title pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_Title_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_Title(0)
+      
+    }
+  ) 
+  
+  output$Pick_Rate_Adjusted_Avatar <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Avatar() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_Avatar_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_Avatar <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Avatar() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_Avatar_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #Avatar pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_Avatar_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(1)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #Avatar pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_Avatar_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_Avatar(0)
+      
+    }
+  ) 
+  
+  output$Pick_Rate_Adjusted_Outfit <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Outfit() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_Outfit_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_Outfit <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Outfit() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_Outfit_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #Outfit pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_Outfit_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(1)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #Outfit pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_Outfit_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_Outfit(0)
+      
+    }
+  ) 
+  
+  output$Pick_Rate_Adjusted_Attachment <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Attachment() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_Attachment_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_Attachment <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Attachment() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_Attachment_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #Attachment pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_Attachment_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(1)
+      Pickrateadjusted_Pose(0)
+      
+    }
+  )
+  
+  #Attachment pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_Attachment_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_Attachment(0)
+      
+    }
+  ) 
+  
+  output$Pick_Rate_Adjusted_Pose <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Pose() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_Pose_Button',
+                 label = 'Pick rate (adjusted)')
+    
+  })
+  
+  output$Pick_Rate_Pose <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Pose() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_Pose_Button',
+                 label = 'Pick rate')
+    
+  })
+  
+  #Pose pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_Pose_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_OverallMeasure(0)
+      Pickrateadjusted_RegionGroup(0)
+      Pickrateadjusted_Region(0)
+      Pickrateadjusted_TotalTime(0)
+      Pickrateadjusted_ChampionTime(0)
+      Pickrateadjusted_BestOverallBattlerites(0)
+      Pickrateadjusted_Battlerites(0)
+      Pickrateadjusted_League(0)
+      Pickrateadjusted_ServerType(0)
+      Pickrateadjusted_PlayerType(0)
+      Pickrateadjusted_Date(0)
+      Pickrateadjusted_Map(0)
+      Pickrateadjusted_Casual(0)
+      Pickrateadjusted_Ping(0)
+      Pickrateadjusted_Round_Stats(0)
+      Pickrateadjusted_Comps_Matchups(0)
+      Pickrateadjusted_Mount(0)
+      Pickrateadjusted_Title(0)
+      Pickrateadjusted_Avatar(0)
+      Pickrateadjusted_Outfit(0)
+      Pickrateadjusted_Attachment(0)
+      Pickrateadjusted_Pose(1)
+      
+    }
+  )
+  
+  #Pose pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_Pose_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_Pose(0)
+      
+    }
+  ) 
+  
+  
+  
   #####################
   ###OVERALL WINRATE###
   #####################
@@ -2527,7 +3984,7 @@ server <- function(input, output) {
       
     }
     
-    if (input$measure == 'pickrateadjusted') {
+    if (input$measure == 'pickrate' & Pickrateadjusted_OverallMeasure() == 1) {
       
       data <- filter(Champions_Pick_Rate(), Champion == input$champion)
       output <- data$Pick_Rate
@@ -2597,9 +4054,9 @@ server <- function(input, output) {
     
   })
   
-  ################################
-  ###INTERACTIVE ACTION BUTTONS###
-  ################################
+  #######################################
+  ###INTERACTIVE FILTER ACTION BUTTONS###
+  #######################################
   
   output$Interactive_ResetButton <- renderUI({
     
@@ -2668,7 +4125,8 @@ server <- function(input, output) {
   
   #Create aggregate region data
   Region_df <- reactive({region_agg(filtered_data(),
-                                    input$measure)})
+                                    input$measure,
+                                    Pickrateadjusted_Region())})
   
   
   
@@ -2707,7 +4165,7 @@ server <- function(input, output) {
                                                         filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                                                         filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                                                         filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                                                        filter_player(), player_selection())
+                                                        filter_player(), player_selection(), Pickrateadjusted_Region())
     
     })
   
@@ -2719,14 +4177,16 @@ server <- function(input, output) {
   pre_agg_regiongroup <- reactive({pre_agg(filtered_data(),
                                            input$measure,
                                            'Region Group',
-                                           FALSE)})
+                                           FALSE,
+                                           Pickrateadjusted_RegionGroup())})
   
   RegionGroup_df <- reactive({
     
     common_agg(pre_agg_regiongroup(),
                input$measure,
                'Region Group',
-               FALSE)
+               FALSE,
+               Pickrateadjusted_RegionGroup())
     
     
     })
@@ -2765,7 +4225,7 @@ server <- function(input, output) {
                         filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                         filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                         filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                        filter_player(), player_selection())
+                        filter_player(), player_selection(), Pickrateadjusted_RegionGroup())
     
   })
   
@@ -2776,12 +4236,14 @@ server <- function(input, output) {
   pre_agg_totaltime <- reactive({pre_agg(filtered_data(),
                                     input$measure,
                                     'Total_Time_Played',
-                                    FALSE)})
+                                    FALSE,
+                                    Pickrateadjusted_TotalTime())})
   
   Totaltime_df <- reactive({common_agg(pre_agg_totaltime(),
                                   input$measure,
                                   'Total_Time_Played',
-                                  FALSE)})
+                                  FALSE,
+                                  Pickrateadjusted_TotalTime())})
   #Filter Totaltime observe event
   observeEvent(
     eventExpr = input$filterTotalTime,
@@ -2813,7 +4275,7 @@ server <- function(input, output) {
                    filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                    filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                    filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                   filter_player(), player_selection())
+                   filter_player(), player_selection(), Pickrateadjusted_TotalTime())
     
   })
   
@@ -2841,12 +4303,14 @@ server <- function(input, output) {
   pre_agg_championtime <- reactive({pre_agg(filtered_data(),
                                          input$measure,
                                          'Champion_Time_Played',
-                                         FALSE)})
+                                         FALSE,
+                                         Pickrateadjusted_ChampionTime())})
   
   Championtime_df <- reactive({common_agg(pre_agg_championtime(),
                                        input$measure,
                                        'Champion_Time_Played',
-                                       FALSE)})
+                                       FALSE,
+                                       Pickrateadjusted_ChampionTime())})
   #Filter Totaltime observe event
   observeEvent(
     eventExpr = input$filterChampionTime,
@@ -2878,7 +4342,7 @@ server <- function(input, output) {
                    filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                    filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                    filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                   filter_player(), player_selection())
+                   filter_player(), player_selection(), Pickrateadjusted_ChampionTime())
     
   })
   
@@ -2908,12 +4372,14 @@ server <- function(input, output) {
   pre_agg_league <- reactive({pre_agg(filtered_data(),
                                       input$measure,
                                       'League',
-                                      FALSE)})
+                                      FALSE,
+                                      Pickrateadjusted_League())})
   
   League_df <- reactive({common_agg(pre_agg_league(),
                                     input$measure,
                                     'League',
-                                    FALSE)})
+                                    FALSE,
+                                    Pickrateadjusted_League())})
   
   #Filter League observe event
   observeEvent(
@@ -2946,7 +4412,7 @@ server <- function(input, output) {
                    filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                    filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                    filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                   filter_player(), player_selection())})
+                   filter_player(), player_selection(), Pickrateadjusted_League())})
   
   #League hover label
   output$League_tooltip <- renderUI({
@@ -2972,12 +4438,14 @@ server <- function(input, output) {
   pre_agg_playertype <- reactive({pre_agg(filtered_data(),
                                           input$measure,
                                           'Player_Type',
-                                          FALSE)})
+                                          FALSE,
+                                          Pickrateadjusted_PlayerType())})
   
   PlayerType_df <- reactive({common_agg(pre_agg_playertype(),
                                         input$measure,
                                         'Player_Type',
-                                        FALSE)})
+                                        FALSE,
+                                        Pickrateadjusted_PlayerType())})
   
   #Filter PlayerType observe event
   observeEvent(
@@ -3010,7 +4478,7 @@ server <- function(input, output) {
                    filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                    filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                    filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                   filter_player(), player_selection())
+                   filter_player(), player_selection(), Pickrateadjusted_PlayerType())
     
   })
   
@@ -3039,12 +4507,14 @@ server <- function(input, output) {
   pre_agg_date <- reactive({pre_agg(filtered_data(),
                                           input$measure,
                                           'Date',
-                                           FALSE)})
+                                           FALSE,
+                                    Pickrateadjusted_Date())})
   
   date_df <- reactive({common_agg(pre_agg_date(),
                                         input$measure,
                                         'Date',
-                                        FALSE)})
+                                        FALSE,
+                                  Pickrateadjusted_Date())})
   #Filter Date observe event
   observeEvent(
     eventExpr = input$filterDate,
@@ -3076,7 +4546,7 @@ server <- function(input, output) {
                    filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                    filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                    filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                   filter_player(), player_selection())
+                   filter_player(), player_selection(), Pickrateadjusted_Date())
     
   })
   
@@ -3106,7 +4576,8 @@ server <- function(input, output) {
     pre_agg(filtered_data(),
             input$measure,
             'Ping',
-            FALSE)
+            FALSE,
+            Pickrateadjusted_Ping())
     
   })
   
@@ -3115,7 +4586,8 @@ server <- function(input, output) {
     common_agg(pre_agg_ping(),
                input$measure,
                'Ping',
-               FALSE)
+               FALSE,
+               Pickrateadjusted_Ping())
     
   })
   
@@ -3147,7 +4619,7 @@ server <- function(input, output) {
                    filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                    filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                    filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                   filter_player(), player_selection()) +
+                   filter_player(), player_selection(), Pickrateadjusted_Ping()) +
       theme(axis.text.x = element_text(angle = 45, hjust = 1))
     
   })
@@ -3177,12 +4649,14 @@ server <- function(input, output) {
   pre_agg_servertype <- reactive({pre_agg(filtered_data(),
                                           input$measure,
                                           'Server_Type',
-                                          FALSE)})
+                                          FALSE,
+                                          Pickrateadjusted_ServerType())})
   
   Servertype_df <- reactive({common_agg(pre_agg_servertype(),
                                         input$measure,
                                         'Server_Type',
-                                        FALSE)})
+                                        FALSE,
+                                        Pickrateadjusted_ServerType())})
   
   #Filter ServerType observe event
   observeEvent(
@@ -3215,7 +4689,7 @@ server <- function(input, output) {
                    filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                    filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                    filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                   filter_player(), player_selection())
+                   filter_player(), player_selection(), Pickrateadjusted_ServerType())
     
   })
   
@@ -3243,14 +4717,16 @@ server <- function(input, output) {
   pre_agg_map <- reactive({pre_agg(filtered_data(),
                                    input$measure,
                                    'Map',
-                                   FALSE)})
+                                   FALSE,
+                                   Pickrateadjusted_Map())})
   
   Map_df <- reactive({
     
     data <- common_agg(pre_agg_map(),
                        input$measure,
                        'Map',
-                       TRUE) %>%
+                       TRUE,
+                       Pickrateadjusted_Map()) %>%
       mutate(Type = ifelse(str_sub(Map, -3, -1) == 'DAY', 'DAY', 'NIGHT'))
     data$Type <- factor(data$Type)
     data
@@ -3288,7 +4764,7 @@ server <- function(input, output) {
                    filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                    filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                    filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                   filter_player(), player_selection())
+                   filter_player(), player_selection(), Pickrateadjusted_Map())
     
   })
   
@@ -3316,12 +4792,14 @@ server <- function(input, output) {
   pre_agg_casual <- reactive({pre_agg(filtered_data(),
                                       input$measure,
                                       'Ranking_Type',
-                                      FALSE)})
+                                      FALSE,
+                                      Pickrateadjusted_Casual())})
   
   Casual_df <- reactive({common_agg(pre_agg_casual(),
                                     input$measure,
                                     'Ranking_Type',
-                                    FALSE)})
+                                    FALSE,
+                                    Pickrateadjusted_Casual())})
   
   #Filter Ranking_Type observe event
   observeEvent(
@@ -3354,7 +4832,7 @@ server <- function(input, output) {
                    filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                    filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                    filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                   filter_player(), player_selection())
+                   filter_player(), player_selection(), Pickrateadjusted_Casual())
     
   })
   
@@ -3445,14 +4923,16 @@ server <- function(input, output) {
   pre_agg_avatar <- reactive({pre_agg(filtered_data(),
                                       input$measure,
                                       'Avatar',
-                                      FALSE)})
+                                      FALSE,
+                                      Pickrateadjusted_Avatar())})
   
   Avatar_df <- reactive({
     
             common_agg(pre_agg_avatar(),
                        input$measure,
                        'Avatar',
-                       TRUE)
+                       TRUE,
+                       Pickrateadjusted_Avatar())
     })
   
   Avatar_split_df <- reactive({
@@ -3520,7 +5000,7 @@ server <- function(input, output) {
                      filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                      filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                      filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                     filter_player(), player_selection())
+                     filter_player(), player_selection(), Pickrateadjusted_Avatar())
       
     } else {
     
@@ -3531,7 +5011,7 @@ server <- function(input, output) {
                    filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                    filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                    filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                   filter_player(), player_selection())
+                   filter_player(), player_selection(), Pickrateadjusted_Avatar())
    
     }
     
@@ -3579,12 +5059,14 @@ server <- function(input, output) {
   pre_agg_title <- reactive({pre_agg(filtered_data(),
                                      input$measure,
                                      'Title',
-                                     FALSE)})
+                                     FALSE,
+                                     Pickrateadjusted_Title())})
   
   Title_df <- reactive({common_agg(pre_agg_title(),
                                    input$measure,
                                    'Title',
-                                   TRUE)})
+                                   TRUE,
+                                   Pickrateadjusted_Title())})
   
   Title_split_df <- reactive({
     
@@ -3650,7 +5132,7 @@ server <- function(input, output) {
                      filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                      filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                      filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                     filter_player(), player_selection())
+                     filter_player(), player_selection(), Pickrateadjusted_Title())
       
     } else {
     
@@ -3661,7 +5143,7 @@ server <- function(input, output) {
                    filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                    filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                    filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                   filter_player(), player_selection())
+                   filter_player(), player_selection(), Pickrateadjusted_Title())
       
     }
     
@@ -3700,19 +5182,21 @@ server <- function(input, output) {
   pre_agg_mount <- reactive({pre_agg(filtered_data(),
                                      input$measure,
                                      'Mount',
-                                     FALSE)})
+                                     FALSE,
+                                     Pickrateadjusted_Mount())})
   
   Mount_df <- reactive({
     data <- common_agg(pre_agg_mount(),
                        input$measure,
                        'Mount',
-                       TRUE)
+                       TRUE,
+                       Pickrateadjusted_Mount())
     
     
     
     mount_crosswalk$Value <- factor(mount_crosswalk$Value, levels = levels(data$Mount))
     
-    if (input$measure != 'pickrateadjusted') {
+    if (!(input$measure == 'pickrate' & Pickrateadjusted_Mount() == 1)) {
       
       data <- inner_join(x = data, y = mount_crosswalk, by = c('Mount' = 'Value'))[-5] 
       
@@ -3792,7 +5276,7 @@ server <- function(input, output) {
                      filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                      filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                      filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                     filter_player(), player_selection())
+                     filter_player(), player_selection(), Pickrateadjusted_Mount())
       
     } else {
     
@@ -3803,7 +5287,7 @@ server <- function(input, output) {
                    filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                    filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                    filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                   filter_player(), player_selection())
+                   filter_player(), player_selection(), Pickrateadjusted_Mount())
     
     }
   })
@@ -3842,18 +5326,20 @@ server <- function(input, output) {
   pre_agg_outfit <- reactive({pre_agg(filtered_data(),
                                       input$measure,
                                       'Outfit',
-                                      FALSE)})
+                                      FALSE,
+                                      Pickrateadjusted_Outfit())})
   
   Outfit_df <- reactive({
     
     data <- common_agg(pre_agg_outfit(),
                        input$measure,
                        'Outfit',
-                       TRUE)
+                       TRUE,
+                       Pickrateadjusted_Outfit())
     
     outfit_crosswalk$Value <- factor(outfit_crosswalk$Value, levels = levels(data$Outfit))
     
-    if (input$measure != 'pickrateadjusted') {
+    if (!(input$measure == 'pickrate' & Pickrateadjusted_Outfit() == 1)) {
       
       data <- inner_join(x = data, y = outfit_crosswalk, by = c('Outfit' = 'Value'))[-5] 
       
@@ -3899,7 +5385,7 @@ server <- function(input, output) {
                    filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                    filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                    filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                   filter_player(), player_selection())
+                   filter_player(), player_selection(), Pickrateadjusted_Outfit())
     
   })
   
@@ -3928,18 +5414,20 @@ server <- function(input, output) {
   pre_agg_attachment <- reactive({pre_agg(filtered_data(),
                                           input$measure,
                                           'Attachment',
-                                          FALSE)})
+                                          FALSE,
+                                          Pickrateadjusted_Attachment())})
   
   Attachment_df <- reactive({
     
     data <- common_agg(pre_agg_attachment(),
                        input$measure,
                        'Attachment',
-                       TRUE)
+                       TRUE,
+                       Pickrateadjusted_Attachment())
     
     attachment_crosswalk$Value <- factor(attachment_crosswalk$Value, levels = levels(data$Attachment))
     
-    if (input$measure != 'pickrateadjusted') {
+    if (!(input$measure == 'pickrate' & Pickrateadjusted_Attachment() == 1)) {
       
       data <- inner_join(x = data, y = attachment_crosswalk, by = c('Attachment' = 'Value'))[-5] 
       
@@ -3985,7 +5473,7 @@ server <- function(input, output) {
                    filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                    filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                    filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                   filter_player(), player_selection())
+                   filter_player(), player_selection(), Pickrateadjusted_Attachment())
     
   })
   
@@ -4013,18 +5501,20 @@ server <- function(input, output) {
   pre_agg_pose <- reactive({pre_agg(filtered_data(),
                                     input$measure,
                                     'Pose',
-                                    FALSE)})
+                                    FALSE,
+                                    Pickrateadjusted_Pose())})
   
   Pose_df <- reactive({
     
     data <- common_agg(pre_agg_pose(),
                        input$measure,
                        'Pose',
-                       TRUE)
+                       TRUE,
+                       Pickrateadjusted_Pose())
     
     pose_crosswalk$Value <- factor(pose_crosswalk$Value, levels = levels(data$Pose))
     
-    if (input$measure != 'pickrateadjusted') {
+    if (!(input$measure == 'pickrate' & Pickrateadjusted_Pose() == 1)) {
       
       data <- inner_join(x = data, y = pose_crosswalk, by = c('Pose' = 'Value'))[-5] 
       
@@ -4070,7 +5560,7 @@ server <- function(input, output) {
                    filtered_Avatar(), filtered_Outfit(), filtered_Attachment(),
                    filtered_Pose(), filtered_RegionGroup(), filtered_PlayerType(),
                    filtered_Date(), filtered_Battlerites$battlerites, filtered_Ping(),
-                   filter_player(), player_selection())
+                   filter_player(), player_selection(), Pickrateadjusted_Pose())
     
   })
   
@@ -4128,7 +5618,7 @@ server <- function(input, output) {
                 Queue_Time = mean(Queue_Time, na.rm = TRUE))
     
     if (input$measure == 'winrateadjusted' |
-        input$measure == 'pickrateadjusted') {
+        (input$measure == 'pickrate' & Pickrateadjusted_Round_Stats() == 1)) {
       
       #Group by game won and user id
       
@@ -4248,8 +5738,7 @@ server <- function(input, output) {
     
     req(input$champion != 'None')
     
-    req(input$measure == 'pickrate' |
-          input$measure == 'pickrateadjusted')
+    req(input$measure == 'pickrate')
     
     data <- stats_agg()
     Value <- colMeans(data)
@@ -4395,7 +5884,7 @@ server <- function(input, output) {
     
     }
     
-    if (input$measure == 'pickrateadjusted') {
+    if (input$measure == 'pickrate' & Pickrateadjusted_Comps_Matchups() == 1) {
       
       data2 <- data %>%
         ungroup() %>%
@@ -4455,7 +5944,7 @@ server <- function(input, output) {
   
   ally_comp_agg <- reactive({
     
-    if (input$measure != 'pickrateadjusted') {
+    if (!(input$measure == 'pickrate' & Pickrateadjusted_Comps_Matchups() == 1)) {
 
     data <- ally_comp_pre_agg() %>%
       ungroup() %>%
@@ -4521,7 +6010,7 @@ server <- function(input, output) {
       
     }
     
-    if (input$measure == 'pickrateadjusted') {
+    if (input$measure == 'pickrate' & Pickrateadjusted_Comps_Matchups() == 1) {
       
       data2 <- data %>%
         ungroup() %>%
@@ -4582,7 +6071,7 @@ server <- function(input, output) {
   enemy_comp_agg <- reactive({
     req(!is.null(enemy_comp_pre_agg))
 
-    if (input$measure != 'pickrateadjusted') {
+    if (!(input$measure == 'pickrate' & Pickrateadjusted_Comps_Matchups() == 1)) {
     
     data <- enemy_comp_pre_agg() %>%
       ungroup() %>%
@@ -4852,7 +6341,7 @@ server <- function(input, output) {
 
       }
       
-      if (input$measure == 'pickrateadjusted') {
+      if (input$measure == 'pickrate' & Pickrateadjusted_Comps_Matchups() == 1) {
         
         data2 <- data %>%
           ungroup() %>%
@@ -4915,7 +6404,7 @@ server <- function(input, output) {
   
   Allyroles_df <- reactive({
     
-    if (input$measure != 'pickrateadjusted') {
+    if (!(input$measure == 'pickrate' & Pickrateadjusted_Comps_Matchups() == 1)) {
     data <- pre_agg_allyroles() %>%
       ungroup() %>%
       select(Team_Roles, Game_Won) %>%
@@ -4965,7 +6454,7 @@ server <- function(input, output) {
   
   Allyroles_best <- reactive({
     
-    if (input$measure != 'pickrateadjusted') {
+    if (!(input$measure == 'pickrate' & Pickrateadjusted_Comps_Matchups() == 1)) {
     
     data <- pre_agg_allyroles() %>%
       ungroup() %>%
@@ -5018,7 +6507,7 @@ server <- function(input, output) {
   
   Allyroles_worst <- reactive({
     
-    if (input$measure != 'pickrateadjusted') {
+    if (!(input$measure == 'pickrate' & Pickrateadjusted_Comps_Matchups() == 1)) {
     
     data <- pre_agg_allyroles() %>%
       ungroup() %>%
@@ -5357,7 +6846,8 @@ server <- function(input, output) {
   create_battlerites_agg <- function(filtered_data,
                                      input_measure,
                                      filtered_battlerites,
-                                     battlerites_df_prefilter) {
+                                     battlerites_df_prefilter,
+                                     pickrateadjusted) {
  
     Battlerites <- c()
     Win_Rate <- c()
@@ -5382,7 +6872,7 @@ server <- function(input, output) {
       
     }
     
-      if (input_measure != 'pickrateadjusted') {
+      if (!(input_measure == 'pickrate' & pickrateadjusted == 1)) {
       
     for (battlerite in c(names(filtered_data)[76:length(names(filtered_data))])) {
       
@@ -5391,7 +6881,8 @@ server <- function(input, output) {
       pre_agg_battlerites1 <- pre_agg(filtered_data,
                                       input_measure,
                                       battlerite,
-                                      FALSE)
+                                      FALSE,
+                                      pickrateadjusted)
       
       var <- as.name(battlerite)
       
@@ -5496,7 +6987,7 @@ server <- function(input, output) {
         }
 
       
-    if (input_measure != 'pickrateadjusted') {
+    if (!(input_measure == 'pickrate' & pickrateadjusted == 1)) {
     
     br_winrates <- data.frame(Battlerites, Win_Rate, Pick_Rate, Sample_Size, stringsAsFactors = TRUE)
     
@@ -5519,7 +7010,7 @@ server <- function(input, output) {
     
     br_crosswalk$Value <- factor(br_crosswalk$Value, levels = levels(br_winrates$Battlerites))
     
-    if (input$measure != 'pickrateadjusted') {
+    if (!(input_measure == 'pickrate' & pickrateadjusted == 1)) {
     
     brtypes <- inner_join(x = br_winrates, y = br_crosswalk, by = c('Battlerites' = 'Value'))[-5]
     
@@ -5544,7 +7035,7 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     create_battlerites_agg(filtered_data(), input$measure, filtered_Battlerites$battlerites, 
-                           Battlerites_df_prefilter())
+                           Battlerites_df_prefilter(), Pickrateadjusted_Battlerites())
     
   })
   
@@ -5818,7 +7309,8 @@ server <- function(input, output) {
     data <- pre_agg(filtered_data2(),
                     input$measure,
                     'Battlerites',
-                    TRUE)
+                    TRUE,
+                    Pickrateadjusted_BestOverallBattlerites())
     
     })
 
@@ -5826,7 +7318,7 @@ server <- function(input, output) {
   
   Battlerites_df_prefilter <- reactive({
     
-    if (input$measure != 'pickrateadjusted') {
+    if (!(input$measure == 'pickrate' & Pickrateadjusted_BestOverallBattlerites() == 1)) {
       
       data <- pre_agg_battlerites() %>%
         ungroup() %>%

@@ -620,6 +620,19 @@ server <- function(input, output) {
     
   })
   
+  #####################
+  ###USER GUIDE LINK###
+  #####################
+  
+  output$UserGuide <- renderUI({
+    
+    url <- a("See The User Guide For Instructions and Functionality", 
+             href = 'https://github.com/Skywind555/Personal-Projects/blob/master/User_Guide.md')
+    
+    tagList(url)
+    
+  })
+  
   ##########
   ###DATA###
   ##########

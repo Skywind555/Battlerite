@@ -79,7 +79,8 @@ ui <- navbarPage('Navbar',
                             column(width = 3,
                                    uiOutput('Interactive_Day17a'),
                                    uiOutput('Interactive_Day17b'))
-                          )
+                          ),
+                          fluidRow(htmlOutput('UserGuide'))
                  ),
                  tabPanel('Champion',
                           fluidRow(
@@ -290,6 +291,8 @@ ui <- navbarPage('Navbar',
                                             htmlOutput('WorstCompsLabel'),
                                             div(tableOutput('WorstComps'), style = "font-size:80%"))
                                    ),
+                                   uiOutput('Pick_Rate_Adjusted_Comps'),
+                                   uiOutput('Pick_Rate_Comps'),
                                    fluidRow(htmlOutput('BestAllyRoles')),
                                    
                                    fluidRow(
@@ -300,10 +303,11 @@ ui <- navbarPage('Navbar',
                                             htmlOutput('WorstMatchupsLabel'),
                                             div(tableOutput('WorstMatchups'), style = "font-size:80%"))
                                    ),
-                                   fluidRow(htmlOutput('WorstAllyRoles')),
                                    uiOutput('Pick_Rate_Adjusted_Comps_Matchups'),
-                                   uiOutput('Pick_Rate_Comps_Matchups')
-                                   
+                                   uiOutput('Pick_Rate_Comps_Matchups'),
+                                   fluidRow(htmlOutput('WorstAllyRoles')),
+                                   uiOutput('Pick_Rate_Adjusted_TeamRoles'),
+                                   uiOutput('Pick_Rate_TeamRoles')
                           
                             )
                           ),
@@ -425,6 +429,7 @@ server <- function(input, output) {
     
     req(input$FileSelectAll == 'Customize')
     req(input$Day10 == 'Customize')
+    req(input$Customize == 'Customize')
 
     selectInput(inputId = 'Day10Customize',
                 label = 'Select files:',
@@ -450,6 +455,7 @@ server <- function(input, output) {
     
     req(input$FileSelectAll == 'Customize')
     req(input$Day11 == 'Customize')
+    req(input$Customize == 'Customize')
     
     selectInput(inputId = 'Day11Customize',
                 label = 'Select files:',
@@ -475,6 +481,7 @@ server <- function(input, output) {
     
     req(input$FileSelectAll == 'Customize')
     req(input$Day12 == 'Customize')
+    req(input$Customize == 'Customize')
     
     selectInput(inputId = 'Day12Customize',
                 label = 'Select files:',
@@ -500,6 +507,7 @@ server <- function(input, output) {
     
     req(input$FileSelectAll == 'Customize')
     req(input$Day13 == 'Customize')
+    req(input$Customize == 'Customize')
     
     selectInput(inputId = 'Day13Customize',
                 label = 'Select files:',
@@ -525,6 +533,7 @@ server <- function(input, output) {
     
     req(input$FileSelectAll == 'Customize')
     req(input$Day14 == 'Customize')
+    req(input$Customize == 'Customize')
     
     selectInput(inputId = 'Day14Customize',
                 label = 'Select files:',
@@ -550,6 +559,7 @@ server <- function(input, output) {
     
     req(input$FileSelectAll == 'Customize')
     req(input$Day15 == 'Customize')
+    req(input$Customize == 'Customize')
     
     selectInput(inputId = 'Day15Customize',
                 label = 'Select files:',
@@ -575,6 +585,7 @@ server <- function(input, output) {
     
     req(input$FileSelectAll == 'Customize')
     req(input$Day16 == 'Customize')
+    req(input$Customize == 'Customize')
     
     selectInput(inputId = 'Day16Customize',
                 label = 'Select files:',
@@ -600,6 +611,7 @@ server <- function(input, output) {
     
     req(input$FileSelectAll == 'Customize')
     req(input$Day17 == 'Customize')
+    req(input$Customize == 'Customize')
     
     selectInput(inputId = 'Day17Customize',
                 label = 'Select files:',
@@ -612,7 +624,7 @@ server <- function(input, output) {
   ###DATA###
   ##########
   
-  pre_df <- eventReactive(
+  df <- eventReactive(
     eventExpr = input$CreateData,
     valueExpr = {
       
@@ -622,11 +634,11 @@ server <- function(input, output) {
       
       withProgress(message = 'Reading in data', value = 0, {
       
-      files <- list.files(path = 'Data', pattern = '^Jul', recursive = TRUE)
+      files <- list.files(path = 'Dashboard Data', pattern = '^Jul', recursive = TRUE)
       
       for (i in 1:length(files)) {
         
-        data <- rbind(data, read_csv(paste0('Data/', files[i]))[, c(1:73, 112, 113)])
+        data <- rbind(data, read_csv(paste0('Dashboard Data/', files[i])))
         
         incProgress(1/(length(files)), detail = paste('Concatenating file', i))
         
@@ -640,11 +652,11 @@ server <- function(input, output) {
         
         for (day in input$FileSelectDays) {
           
-          files <- list.files(path = 'Data', pattern = paste0('^Jul-', day), recursive = TRUE)
+          files <- list.files(path = 'Dashboard Data', pattern = paste0('^Jul-', day), recursive = TRUE)
           
           for (i in 1:length(files)) {
             
-            data <- rbind(data, read_csv(paste0('Data/', files[i]))[, c(1:73, 112, 113)])
+            data <- rbind(data, read_csv(paste0('Dashboard Data/', files[i])))
             
             incProgress(1/(length(files)), detail = paste('Concatenating file', i, 'on day', day))
             
@@ -658,13 +670,13 @@ server <- function(input, output) {
         
         if(input$Day10 == 'Use all data') {
           
-          files <- list.files(path = 'Data', pattern = '^Jul-10', recursive = TRUE)
+          files <- list.files(path = 'Dashboard Data', pattern = '^Jul-10', recursive = TRUE)
          
            withProgress(message = 'Reading in Day 10', value = 0, {
           
           for (i in 1:length(files)) {
             
-            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            data <- rbind(data, read_csv(paste0('Dashboard Data/', files[i])))
             
             incProgress(1/length(files), detail = paste('Concatenating file', i))
             
@@ -678,7 +690,7 @@ server <- function(input, output) {
           
           for (i in 1:length(input$Day10Customize)) {
             
-            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            data <- rbind(data, read_csv(paste0('Dashboard Data/', input$Day10Customize[i])))
             
             incProgress(1/length(input$Day10Customize), detail = paste('Concatenating file', i))
             
@@ -690,13 +702,13 @@ server <- function(input, output) {
           
           if(input$Day11 == 'Use all data') {
             
-            files <- list.files(path = 'Data', pattern = '^Jul-11', recursive = TRUE)
+            files <- list.files(path = 'Dashboard Data', pattern = '^Jul-11', recursive = TRUE)
             
             withProgress(message = 'Reading in Day 11', value = 0, {
               
               for (i in 1:length(files)) {
                 
-                data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+                data <- rbind(data, read_csv(paste0('Dashboard Data/', files[i])))
                 
                 incProgress(1/length(files), detail = paste('Concatenating file', i))
                 
@@ -710,7 +722,7 @@ server <- function(input, output) {
                 
                 for (i in 1:length(input$Day11Customize)) {
                   
-                  data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+                  data <- rbind(data, read_csv(paste0('Dashboard Data/', input$Day11Customize[i])))
                   
                   incProgress(1/length(input$Day11Customize), detail = paste('Concatenating file', i))
                   
@@ -722,13 +734,13 @@ server <- function(input, output) {
         
         if(input$Day12 == 'Use all data') {
           
-          files <- list.files(path = 'Data', pattern = '^Jul-12', recursive = TRUE)
+          files <- list.files(path = 'Dashboard Data', pattern = '^Jul-12', recursive = TRUE)
           
           withProgress(message = 'Reading in Day 12', value = 0, {
             
             for (i in 1:length(files)) {
               
-              data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+              data <- rbind(data, read_csv(paste0('Dashboard Data/', files[i])))
               
               incProgress(1/length(files), detail = paste('Concatenating file', i))
               
@@ -742,7 +754,7 @@ server <- function(input, output) {
               
               for (i in 1:length(input$Day12Customize)) {
                 
-                data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+                data <- rbind(data, read_csv(paste0('Dashboard Data/', input$Day12Customize[i])))
                 
                 incProgress(1/length(input$Day12Customize), detail = paste('Concatenating file', i))
                 
@@ -754,13 +766,13 @@ server <- function(input, output) {
         
       if(input$Day13 == 'Use all data') {
         
-        files <- list.files(path = 'Data', pattern = '^Jul-13', recursive = TRUE)
+        files <- list.files(path = 'Dashboard Data', pattern = '^Jul-13', recursive = TRUE)
         
         withProgress(message = 'Reading in Day 13', value = 0, {
           
           for (i in 1:length(files)) {
             
-            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            data <- rbind(data, read_csv(paste0('Dashboard Data/', files[i])))
             
             incProgress(1/length(files), detail = paste('Concatenating file', i))
             
@@ -774,7 +786,7 @@ server <- function(input, output) {
             
             for (i in 1:length(input$Day13Customize)) {
               
-              data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+              data <- rbind(data, read_csv(paste0('Dashboard Data/', input$Day13Customize[i])))
               
               incProgress(1/length(input$Day13Customize), detail = paste('Concatenating file', i))
               
@@ -786,13 +798,13 @@ server <- function(input, output) {
         
     if(input$Day14 == 'Use all data') {
       
-      files <- list.files(path = 'Data', pattern = '^Jul-14', recursive = TRUE)
+      files <- list.files(path = 'Dashboard Data', pattern = '^Jul-14', recursive = TRUE)
       
       withProgress(message = 'Reading in Day 14', value = 0, {
         
         for (i in 1:length(files)) {
           
-          data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+          data <- rbind(data, read_csv(paste0('Dashboard Data/', files[i])))
           
           incProgress(1/length(files), detail = paste('Concatenating file', i))
           
@@ -806,7 +818,7 @@ server <- function(input, output) {
           
           for (i in 1:length(input$Day14Customize)) {
             
-            data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+            data <- rbind(data, read_csv(paste0('Dashboard Data/', input$Day14Customize[i])))
             
             incProgress(1/length(input$Day14Customize), detail = paste('Concatenating file', i))
             
@@ -818,13 +830,13 @@ server <- function(input, output) {
           
           if(input$Day15 == 'Use all data') {
             
-            files <- list.files(path = 'Data', pattern = '^Jul-15', recursive = TRUE)
+            files <- list.files(path = 'Dashboard Data', pattern = '^Jul-15', recursive = TRUE)
             
             withProgress(message = 'Reading in Day 15', value = 0, {
               
               for (i in 1:length(files)) {
                 
-                data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+                data <- rbind(data, read_csv(paste0('Dashboard Data/', files[i])))
                 
                 incProgress(1/length(files), detail = paste('Concatenating file', i))
                 
@@ -838,7 +850,7 @@ server <- function(input, output) {
                 
                 for (i in 1:length(input$Day15Customize)) {
                   
-                  data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+                  data <- rbind(data, read_csv(paste0('Dashboard Data/', input$Day15Customize[i])))
                   
                   incProgress(1/length(input$Day15Customize), detail = paste('Concatenating file', i))
                   
@@ -850,13 +862,13 @@ server <- function(input, output) {
           
           if(input$Day16 == 'Use all data') {
             
-            files <- list.files(path = 'Data', pattern = '^Jul-16', recursive = TRUE)
+            files <- list.files(path = 'Dashboard Data', pattern = '^Jul-16', recursive = TRUE)
             
             withProgress(message = 'Reading in Day 16', value = 0, {
               
               for (i in 1:length(files)) {
                 
-                data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+                data <- rbind(data, read_csv(paste0('Dashboard Data/', files[i])))
                 
                 incProgress(1/length(files), detail = paste('Concatenating file', i))
                 
@@ -870,7 +882,7 @@ server <- function(input, output) {
                 
                 for (i in 1:length(input$Day16Customize)) {
                   
-                  data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+                  data <- rbind(data, read_csv(paste0('Dashboard Data/', input$Day16Customize[i])))
                   
                   incProgress(1/length(input$Day16Customize), detail = paste('Concatenating file', i))
                   
@@ -882,13 +894,13 @@ server <- function(input, output) {
           
           if(input$Day17 == 'Use all data') {
             
-            files <- list.files(path = 'Data', pattern = '^Jul-17', recursive = TRUE)
+            files <- list.files(path = 'Dashboard Data', pattern = '^Jul-17', recursive = TRUE)
             
             withProgress(message = 'Reading in Day 17', value = 0, {
               
               for (i in 1:length(files)) {
                 
-                data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+                data <- rbind(data, read_csv(paste0('Dashboard Data/', files[i])))
                 
                 incProgress(1/length(files), detail = paste('Concatenating file', i))
                 
@@ -902,7 +914,7 @@ server <- function(input, output) {
                 
                 for (i in 1:length(input$Day17Customize)) {
                   
-                  data <- rbind(data, read_csv(paste0('Data/', file))[, c(1:73, 112, 113)])
+                  data <- rbind(data, read_csv(paste0('Dashboard Data/', input$Day17Customize[i])))
                   
                   incProgress(1/length(input$Day17Customize), detail = paste('Concatenating file', i))
                   
@@ -912,37 +924,37 @@ server <- function(input, output) {
       }
     }
     
+    if (is.null(data)) {
+      
+      data
+      
+    } else {
     
-  
-  data  
+    df <- data
     
-  })
-  
-  #####################
-  ###DATA PROCESSING###
-  #####################
-  
-  df <- reactive({
+    df$Total_Time_Played <- factor(df$Total_Time_Played, levels = c('Under 10', '10-50', '50-100', 
+                                                                    '100-200', '200-500', 'Over 500', 'Unknown'))
+    df$Champion_Time_Played <- factor(df$Champion_Time_Played, levels = c('Under 10', '10-50', '50-100', 
+                                                                          '100-200', '200-500', 'Over 500', 'Unknown'))
+
+    df$Team_Roles <- factor(df$Team_Roles)
+    df$Enemy_Roles <- factor(df$Enemy_Roles)
+    df$Battlerites <- factor(df$Battlerites)
     
-    withProgress(message = 'Data processing', value = 0, max = 34, {
-    
-    df <- pre_df()
-    
-    incProgress(1, detail = 'Adding Coordinates')
-    
-    df$Map <- factor(df$Map)
-    df$Champion <- factor(df$Champion)
-    df$Region <- factor(df$Region)
-    df$League <- factor(df$League, levels = rev(c('Grand Champion', 'Champion', 'Diamond', 'Platinum', 'Gold',
-                                                  'Silver', 'Bronze')), ordered = TRUE)
-    region_coordinates$`Region Group` <- factor(region_coordinates$`Region Group`)
-    
-    #Attach Latitude/Longitude, City, Region Group
-    region_coordinates$Region <- factor(region_coordinates$Region, levels = levels(df$Region))
-    df <- inner_join(x = df, y = region_coordinates, by = c('Region' = 'Region'))
-    
-    df$`Region Group` <- factor(df$`Region Group`)
-    df <- mutate(df, Region = Region_Clean)
+    df$Ping <- factor(df$Ping, levels = c('0', '10', '20', '30', '40', '50', '60', '70', '80', '90', '100',
+                                          '110', '120', '130', '140', '150', '160', '170', '180', '190', '200',
+                                          'Time out', 'Unknown'))
+    df$Outfit <- factor(df$Outfit)
+    df$Mount <- factor(df$Mount)
+    df$Attachment <- factor(df$Attachment)
+    df$Pose <- factor(df$Pose)
+    df$Player_Type <- factor(df$Player_Type)
+    df$Ranking_Type <- factor(df$Ranking_Type)
+    df$Server_Type <- factor(df$Server_Type)
+    df$User_ID <- as.character(df$User_ID)
+    df$Date <- factor(df$Date)
+    df$Title <- factor(df$Title)
+    df$Avatar <- factor(df$Avatar)
     df$Region <- factor(df$Region)
     df$`Battlerite 1` <- factor(df$`Battlerite 1`)
     df$`Battlerite 2` <- factor(df$`Battlerite 2`)
@@ -951,122 +963,36 @@ server <- function(input, output) {
     df$`Battlerite 5` <- factor(df$`Battlerite 5`)
     df$Team_Comp <- factor(df$Team_Comp)
     df$Enemy_Comp <- factor(df$Enemy_Comp)
+    df$`Region Group` <- factor(df$`Region Group`)
+    df$Map <- factor(df$Map)
+    df$Champion <- factor(df$Champion)
+    df$Region <- factor(df$Region)
+    df$League <- factor(df$League, levels = rev(c('Grand Champion', 'Champion', 'Diamond', 'Platinum', 'Gold',
+                                                  'Silver', 'Bronze')), ordered = TRUE)
     
-    incProgress(1, detail = 'Filling in NA values for Title')
+    data <- df
     
-    df <- mutate(df, Title = ifelse(is.na(Title),'Unknown',Title))
-    df$Title <- factor(df$Title)
+    }
     
-    df$Avatar <- factor(df$Avatar)
+    data
     
-    #Round dates to days
-    df <- mutate(df, Date = substr(Date, 1, 10))
-    df$Date <- factor(df$Date)
-    
-    df$User_ID <- as.character(df$User_ID)
-    
-    incProgress(1, detail = 'Changing various values in various variables and grouping ping into buckets')
-    
-    #Put Change Server_Type variable to show 2v2, 3v3, solo queue
-    df <- mutate(df, Server_Type = ifelse(Solo_Queue == 1 & Match_Type == 'LEAGUE3V3', 'Solo Queue', 
-                                          ifelse(Server_Type == 'QUICK3V3', '3V3',
-                                                 ifelse(Server_Type == 'QUICK2V2', '2V2', Server_Type))))
-    df$Server_Type <- factor(df$Server_Type)
-    
-    #Convert 'None' to 'Unranked' - there should only be ranked or unranked
-    df <- mutate(df, Ranking_Type = ifelse(Ranking_Type == 'NONE', 'UNRANKED', Ranking_Type))
-    df$Ranking_Type <- factor(df$Ranking_Type)
-    
-    #Add bot player_type information. If outfit is a blank, is a bot (All default battlerites selected for all players
-    #With blank outfits for all champions) Or mount is blank, is a bot
-    df <- mutate(df, Player_Type = ifelse(is.na(Outfit) | is.na(Mount), 'BOT', 'PLAYER'))
-    df$Player_Type <- factor(df$Player_Type)
-    
-    #Bots use default outfits except for mount, fill in blanks with defaults
-    #Bots can also have no mount recorded, fill in blank with RAM
-    df <- mutate(df, Outfit = ifelse(is.na(Outfit), 'DEFAULT OUTFIT', Outfit),
-                 Attachment = ifelse(is.na(Attachment), 'DEFAULT WEAPON', Attachment),
-                 Pose = ifelse(is.na(Pose), 'DEFAULT POSE', Pose),
-                 Mount = ifelse(is.na(Mount), 'RAM', Mount))
-    
-    df$Outfit <- factor(df$Outfit)
-    df$Mount <- factor(df$Mount)
-    df$Attachment <- factor(df$Attachment)
-    df$Pose <- factor(df$Pose)
-    
-    #Convert > 200 ping to 200 ping
-    df <- mutate(df, Ping = 10*round(Ping/10))
-    df <- mutate(df, Ping = ifelse(is.na(Ping), -1, ifelse(Ping > 200, 1000, Ping)))
-    df$Ping <- as.character(df$Ping)
-    df <- mutate(df, Ping = ifelse(Ping == '-1', 'Unknown', ifelse(Ping == 1000, 'Time out', Ping)))
-    
-    df$Ping <- factor(df$Ping, levels = c('0', '10', '20', '30', '40', '50', '60', '70', '80', '90', '100',
-                                          '110', '120', '130', '140', '150', '160', '170', '180', '190', '200',
-                                          'Time out', 'Unknown'))
-    
-    incProgress(10, detail = 'Converting values in Team_Roles to act as a set')
-    
-    #Convert blank queue times to 0 (bots)
-    df <- mutate(df, Queue_Time = ifelse(is.na(Queue_Time), 0, Queue_Time))
-    
-    #Count only each combination once in one specific order
-    df$Team_Roles <- sapply(df$Team_Roles, function(x) strsplit(x, ", "))
-    df$Team_Roles <- sapply(df$Team_Roles, function(x) paste(sort(x), collapse = ' '))
-    df$Team_Roles <- factor(df$Team_Roles)
-    
-    incProgress(10, detail = 'Converting values in Enemy_Roles to act as a set')
-    
-    df$Enemy_Roles <- sapply(df$Enemy_Roles, function(x) strsplit(x, ", "))
-    df$Enemy_Roles <- sapply(df$Enemy_Roles, function(x) paste(sort(x), collapse = ' '))
-    df$Enemy_Roles <- factor(df$Enemy_Roles)
-    
-    incProgress(10, detail = 'Converting values in Battlerites to act as a set')
-    
-    df$Battlerites <- sapply(df$Battlerites, function(x) strsplit(x, ", "))
-    df$Battlerites <- names(sapply(df$Battlerites, function(x) paste(sort(x), collapse = ' ', sep = ', ')))
-    
-    df$Battlerites <- factor(df$Battlerites)
-    
-    incProgress(1, detail = 'Grouping Total_Time_Played and Champion_Time_Played into buckets')
-    
-    #Convert seconds to hours and round up
-    df <- mutate(df, Total_Time_Played = ceiling(Total_Time_Played/3600),
-                 Champion_Time_Played = ceiling(Champion_Time_Played/3600))
-    
-    
-    #Group play time into buckets
-    df <- mutate(df, Total_Time_Played = ifelse(is.na(Total_Time_Played), 'Unknown', 
-                                                ifelse(Total_Time_Played <= 10, 'Under 10',
-                                                       ifelse(Total_Time_Played <= 50, '10-50',
-                                                              ifelse(Total_Time_Played <= 100, '50-100',
-                                                                     ifelse(Total_Time_Played  <= 200, '100-200',
-                                                                            ifelse(Total_Time_Played <= 500, '200-500', 'Over 500')))))),
-                 Champion_Time_Played = ifelse(is.na(Champion_Time_Played), 'Unknown', 
-                                               ifelse(Champion_Time_Played <= 10, 'Under 10',
-                                                      ifelse(Champion_Time_Played <= 50, '10-50',
-                                                             ifelse(Champion_Time_Played <= 100, '50-100',
-                                                                    ifelse(Champion_Time_Played  <= 200, '100-200',
-                                                                           ifelse(Champion_Time_Played <= 500, '200-500', 'Over 500'))))))
-    )
-    
-    df$Total_Time_Played <- factor(df$Total_Time_Played, levels = c('Under 10', '10-50', '50-100', 
-                                                                    '100-200', '200-500', 'Over 500', 'Unknown'))
-    df$Champion_Time_Played <- factor(df$Champion_Time_Played, levels = c('Under 10', '10-50', '50-100', 
-                                                                          '100-200', '200-500', 'Over 500', 'Unknown'))
-    
-    #Drop Duplicate rows of data (data collection error)
-    df <- distinct(df, Game_ID, User_ID, Round, .keep_all = TRUE)
-    
-    
-    })
-    
-    df
   })
+  
+  #####################
+  ###DATA PROCESSING###
+  #####################
   
   output$MessageDataCreated <- renderUI({
     
+    if (!is.null(df())) {
+    
     HTML(paste0('Data created with ', dim(df())[1], ' observations.'))
     
+    } else {
+      
+      HTML(paste0('Please select at least one data file.'))
+      
+    }
     
   })
     
@@ -1093,72 +1019,6 @@ server <- function(input, output) {
       
     })
 
-    
-    #Get Champion pickrate
-    Champions_Pick_Rate <- reactive({
-      
-      withProgress(message = 'Computing Champion_Pick_Rate', max = 28.3, value = 0, {
-        
-        incProgress(.2, detail = 'Preliminary Calculations')
-      
-    data <- df() %>%
-      group_by(Game_ID, User_ID, Champion) 
-    
-    data <- data %>%
-      ungroup() %>%
-      group_by(User_ID, Champion) %>%
-      summarize(Num_Picks = n())
-    
-    data <- inner_join(x = data, y = User_Total_Games_df(), by = c('User_ID' = 'User_ID'))
-    
-    categories <- unique(pull(data, Champion))
-    num_unique_users <- length(unique(data$User_ID))
-    
-    Category = c()
-    Pick_Rate = c()
-    Sample_Size = c()
-    
-    for (category in categories) {
-      
-      incProgress(1, detail = paste('Finding Pick_Rate for', category))
-      
-      data2 <- filter(data, Champion == category)
-      user_pick_rates <- c()
-      
-      #Check if user has picked any other category and compute probability accordingly
-      for (userid in data2$User_ID) {
-        
-        user_filtered <- filter(data2, User_ID == userid)
-        user_pick_rate <- user_filtered$Num_Picks/user_filtered$Total_Games
-        user_pick_rates <- c(user_pick_rates, user_pick_rate)
-        
-        
-      }
-      
-      category_pick_rate <- sum(user_pick_rates)/num_unique_users
-      sample_size <- length(user_pick_rates)
-      
-      Category <- c(Category, category)
-      Pick_Rate <- c(Pick_Rate, category_pick_rate)
-      Sample_Size <- c(Sample_Size, sample_size)
-      
-    }
-    
-    incProgress(0.1, detail = 'Creating dataframe')
-    
-    Champions_Pick_Rate <- data.frame(Category, Pick_Rate, Sample_Size, stringsAsFactors = TRUE) %>%
-      mutate(Pick_Rate = round(Pick_Rate*100,2))
-    colnames(Champions_Pick_Rate)[colnames(Champions_Pick_Rate) == 'Category'] <- 'Champion'
-    Champions_Pick_Rate$Champion <- factor(Champions_Pick_Rate$Champion)
-    
-      })
-    
-    Champions_Pick_Rate
-    
-  })
-  
-
-  
   ###############
   ###############
   ###FUNCTIONS###
@@ -1293,7 +1153,7 @@ server <- function(input, output) {
       
       #Check for columns with all 0's and remove
       remove_cols <- c()
-      for (battlerite in c(names(data)[76:length(data)])) {
+      for (battlerite in c(names(data)[77:length(data)])) {
         
         column <- names(data) %in% battlerite
         col_sum <- sum(data[, column])
@@ -2549,7 +2409,9 @@ server <- function(input, output) {
   Pickrateadjusted_Casual <- reactiveVal(0)
   Pickrateadjusted_Ping <- reactiveVal(0)
   Pickrateadjusted_Round_Stats <- reactiveVal(0)
+  Pickrateadjusted_Comps <- reactiveVal(0)
   Pickrateadjusted_Comps_Matchups <- reactiveVal(0)
+  Pickrateadjusted_TeamRoles <- reactiveVal(0)
   Pickrateadjusted_Mount <- reactiveVal(0)
   Pickrateadjusted_Title <- reactiveVal(0)
   Pickrateadjusted_Avatar <- reactiveVal(0)
@@ -2565,7 +2427,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_OverallMeasure_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -2576,7 +2439,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_OverallMeasure_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -2586,28 +2450,7 @@ server <- function(input, output) {
     handlerExpr = {
       
       Pickrateadjusted_OverallMeasure(1)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+
     }
   )
   
@@ -2629,7 +2472,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_RegionGroup_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -2640,7 +2484,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_RegionGroup_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -2649,28 +2494,7 @@ server <- function(input, output) {
     eventExpr = input$Pickrateadjusted_RegionGroup_Button,
     handlerExpr = {
       
-      Pickrateadjusted_OverallMeasure(0)
       Pickrateadjusted_RegionGroup(1)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
       
     }
   )
@@ -2692,7 +2516,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_Region_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -2703,7 +2528,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_Region_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -2712,29 +2538,8 @@ server <- function(input, output) {
     eventExpr = input$Pickrateadjusted_Region_Button,
     handlerExpr = {
       
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
       Pickrateadjusted_Region(1)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+     
     }
   )
   
@@ -2755,7 +2560,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_TotalTime_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -2766,7 +2572,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_TotalTime_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -2775,29 +2582,8 @@ server <- function(input, output) {
     eventExpr = input$Pickrateadjusted_TotalTime_Button,
     handlerExpr = {
       
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
       Pickrateadjusted_TotalTime(1)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+     
     }
   )
   
@@ -2818,7 +2604,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_ChampionTime_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -2829,7 +2616,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_ChampionTime_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -2837,30 +2625,9 @@ server <- function(input, output) {
   observeEvent(
     eventExpr = input$Pickrateadjusted_ChampionTime_Button,
     handlerExpr = {
-      
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
+     
       Pickrateadjusted_ChampionTime(1)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+    
     }
   )
   
@@ -2881,7 +2648,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_BestOverallBattlerites_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -2892,7 +2660,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_BestOverallBattlerites_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -2900,30 +2669,9 @@ server <- function(input, output) {
   observeEvent(
     eventExpr = input$Pickrateadjusted_BestOverallBattlerites_Button,
     handlerExpr = {
-      
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
+     
       Pickrateadjusted_BestOverallBattlerites(1)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+     
     }
   )
   
@@ -2944,7 +2692,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_Battlerites_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -2955,7 +2704,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_Battlerites_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -2963,30 +2713,9 @@ server <- function(input, output) {
   observeEvent(
     eventExpr = input$Pickrateadjusted_Battlerites_Button,
     handlerExpr = {
-      
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
+    
       Pickrateadjusted_Battlerites(1)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+    
     }
   )
   
@@ -3007,7 +2736,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_League_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3018,7 +2748,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_League_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3027,29 +2758,8 @@ server <- function(input, output) {
     eventExpr = input$Pickrateadjusted_League_Button,
     handlerExpr = {
       
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
       Pickrateadjusted_League(1)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+    
     }
   )
   
@@ -3070,7 +2780,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_ServerType_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3081,7 +2792,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_ServerType_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3089,30 +2801,9 @@ server <- function(input, output) {
   observeEvent(
     eventExpr = input$Pickrateadjusted_ServerType_Button,
     handlerExpr = {
-      
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
+     
       Pickrateadjusted_ServerType(1)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+     
     }
   )
   
@@ -3133,7 +2824,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_PlayerType_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3144,7 +2836,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_PlayerType_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3152,30 +2845,9 @@ server <- function(input, output) {
   observeEvent(
     eventExpr = input$Pickrateadjusted_PlayerType_Button,
     handlerExpr = {
-      
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
+    
       Pickrateadjusted_PlayerType(1)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+     
     }
   )
   
@@ -3196,7 +2868,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_Date_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3207,7 +2880,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_Date_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3215,30 +2889,9 @@ server <- function(input, output) {
   observeEvent(
     eventExpr = input$Pickrateadjusted_Date_Button,
     handlerExpr = {
-      
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
+     
       Pickrateadjusted_Date(1)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+     
     }
   )
   
@@ -3259,7 +2912,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_Map_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3270,7 +2924,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_Map_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3278,30 +2933,9 @@ server <- function(input, output) {
   observeEvent(
     eventExpr = input$Pickrateadjusted_Map_Button,
     handlerExpr = {
-      
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
+     
       Pickrateadjusted_Map(1)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+    
     }
   )
   
@@ -3322,7 +2956,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_Casual_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3333,7 +2968,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_Casual_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3342,29 +2978,8 @@ server <- function(input, output) {
     eventExpr = input$Pickrateadjusted_Casual_Button,
     handlerExpr = {
       
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
       Pickrateadjusted_Casual(1)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+    
     }
   )
   
@@ -3385,7 +3000,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_Ping_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3396,7 +3012,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_Ping_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3404,30 +3021,9 @@ server <- function(input, output) {
   observeEvent(
     eventExpr = input$Pickrateadjusted_Ping_Button,
     handlerExpr = {
-      
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
+    
       Pickrateadjusted_Ping(1)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+     
     }
   )
   
@@ -3448,7 +3044,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_Round_Stats_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3459,7 +3056,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_Round_Stats_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3467,30 +3065,9 @@ server <- function(input, output) {
   observeEvent(
     eventExpr = input$Pickrateadjusted_Round_Stats_Button,
     handlerExpr = {
-      
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
+    
       Pickrateadjusted_Round_Stats(1)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+    
     }
   )
   
@@ -3504,6 +3081,50 @@ server <- function(input, output) {
     }
   )
  
+  output$Pick_Rate_Adjusted_Comps <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Comps() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_Comps_Button',
+                 label = 'Pick rate (adjusted) [long]',
+                 style='padding:4px; font-size:75%')
+    
+  })
+  
+  output$Pick_Rate_Comps <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_Comps() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_Comps_Button',
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
+    
+  })
+  
+  #Comps pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_Comps_Button,
+    handlerExpr = {
+    
+      Pickrateadjusted_Comps(1)
+    
+    }
+  )
+  
+  #Comps pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_Comps_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_Comps(0)
+      
+    }
+  )
+  
   output$Pick_Rate_Adjusted_Comps_Matchups <- renderUI({
     
     req(input$measure == 'pickrate')
@@ -3511,7 +3132,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_Comps_Matchups_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted) [long]',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3522,7 +3144,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_Comps_Matchups_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3530,30 +3153,9 @@ server <- function(input, output) {
   observeEvent(
     eventExpr = input$Pickrateadjusted_Comps_Matchups_Button,
     handlerExpr = {
-      
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
+    
       Pickrateadjusted_Comps_Matchups(1)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+    
     }
   )
   
@@ -3567,6 +3169,50 @@ server <- function(input, output) {
     }
   )
   
+  output$Pick_Rate_Adjusted_TeamRoles <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_TeamRoles() == 0)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrateadjusted_TeamRoles_Button',
+                 label = 'Pick rate (adjusted) [Both text blocks above]',
+                 style='padding:4px; font-size:75%')
+    
+  })
+  
+  output$Pick_Rate_TeamRoles <- renderUI({
+    
+    req(input$measure == 'pickrate')
+    req(Pickrateadjusted_TeamRoles() == 1)
+    req(input$champion != 'None')
+    
+    actionButton(inputId = 'Pickrate_TeamRoles_Button',
+                 label = 'Pick rate [Both text blocks above]',
+                 style='padding:4px; font-size:75%')
+    
+  })
+  
+  #Team Roles Best pick rate adjusted button
+  observeEvent(
+    eventExpr = input$Pickrateadjusted_TeamRoles_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_TeamRoles(1)
+      
+    }
+  )
+  
+  #Team Roles Best pick rate button
+  observeEvent(
+    eventExpr = input$Pickrate_TeamRoles_Button,
+    handlerExpr = {
+      
+      Pickrateadjusted_TeamRoles(0)
+      
+    }
+  )
+  
   output$Pick_Rate_Adjusted_Mount <- renderUI({
     
     req(input$measure == 'pickrate')
@@ -3574,7 +3220,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_Mount_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3585,7 +3232,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_Mount_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3593,30 +3241,9 @@ server <- function(input, output) {
   observeEvent(
     eventExpr = input$Pickrateadjusted_Mount_Button,
     handlerExpr = {
-      
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
+     
       Pickrateadjusted_Mount(1)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+    
     }
   )
   
@@ -3637,7 +3264,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_Title_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3648,7 +3276,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_Title_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3656,30 +3285,9 @@ server <- function(input, output) {
   observeEvent(
     eventExpr = input$Pickrateadjusted_Title_Button,
     handlerExpr = {
-      
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
+    
       Pickrateadjusted_Title(1)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+    
     }
   )
   
@@ -3700,7 +3308,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_Avatar_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3711,7 +3320,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_Avatar_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3719,30 +3329,9 @@ server <- function(input, output) {
   observeEvent(
     eventExpr = input$Pickrateadjusted_Avatar_Button,
     handlerExpr = {
-      
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
+    
       Pickrateadjusted_Avatar(1)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+    
     }
   )
   
@@ -3763,7 +3352,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_Outfit_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3774,7 +3364,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_Outfit_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3782,30 +3373,9 @@ server <- function(input, output) {
   observeEvent(
     eventExpr = input$Pickrateadjusted_Outfit_Button,
     handlerExpr = {
-      
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
+    
       Pickrateadjusted_Outfit(1)
-      Pickrateadjusted_Attachment(0)
-      Pickrateadjusted_Pose(0)
-      
+    
     }
   )
   
@@ -3826,7 +3396,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_Attachment_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3837,7 +3408,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_Attachment_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3845,30 +3417,9 @@ server <- function(input, output) {
   observeEvent(
     eventExpr = input$Pickrateadjusted_Attachment_Button,
     handlerExpr = {
-      
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
+     
       Pickrateadjusted_Attachment(1)
-      Pickrateadjusted_Pose(0)
-      
+     
     }
   )
   
@@ -3889,7 +3440,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrateadjusted_Pose_Button',
-                 label = 'Pick rate (adjusted)')
+                 label = 'Pick rate (adjusted)',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3900,7 +3452,8 @@ server <- function(input, output) {
     req(input$champion != 'None')
     
     actionButton(inputId = 'Pickrate_Pose_Button',
-                 label = 'Pick rate')
+                 label = 'Pick rate',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -3908,28 +3461,7 @@ server <- function(input, output) {
   observeEvent(
     eventExpr = input$Pickrateadjusted_Pose_Button,
     handlerExpr = {
-      
-      Pickrateadjusted_OverallMeasure(0)
-      Pickrateadjusted_RegionGroup(0)
-      Pickrateadjusted_Region(0)
-      Pickrateadjusted_TotalTime(0)
-      Pickrateadjusted_ChampionTime(0)
-      Pickrateadjusted_BestOverallBattlerites(0)
-      Pickrateadjusted_Battlerites(0)
-      Pickrateadjusted_League(0)
-      Pickrateadjusted_ServerType(0)
-      Pickrateadjusted_PlayerType(0)
-      Pickrateadjusted_Date(0)
-      Pickrateadjusted_Map(0)
-      Pickrateadjusted_Casual(0)
-      Pickrateadjusted_Ping(0)
-      Pickrateadjusted_Round_Stats(0)
-      Pickrateadjusted_Comps_Matchups(0)
-      Pickrateadjusted_Mount(0)
-      Pickrateadjusted_Title(0)
-      Pickrateadjusted_Avatar(0)
-      Pickrateadjusted_Outfit(0)
-      Pickrateadjusted_Attachment(0)
+     
       Pickrateadjusted_Pose(1)
       
     }
@@ -3985,9 +3517,22 @@ server <- function(input, output) {
     }
     
     if (input$measure == 'pickrate' & Pickrateadjusted_OverallMeasure() == 1) {
-      
-      data <- filter(Champions_Pick_Rate(), Champion == input$champion)
-      output <- data$Pick_Rate
+        
+        data <- df() %>%
+          group_by(Game_ID, User_ID, Champion) 
+        
+        data <- data %>%
+          ungroup() %>%
+          filter(Champion == input$champion) %>%
+          group_by(User_ID, Champion) %>%
+          summarize(Num_Picks = n())
+        
+        data <- left_join(x = User_Total_Games_df(), y = data, by = c('User_ID' = 'User_ID'))
+        data <- mutate(data, Num_Picks = ifelse(is.na(Num_Picks), 0, Num_Picks))
+        
+        
+        data <- mutate(data, Pick_Rate = Num_Picks/Total_Games)
+        output <- round(mean(data$Pick_Rate)*100,2)
       
     }
     
@@ -4081,7 +3626,8 @@ server <- function(input, output) {
     req(filtered_RegionGroup() != 0)
     
     actionButton(inputId = 'unfilterRegionGroup',
-                 label = 'Unfilter Region Group')
+                 label = 'Unfilter Region Group',
+                 style='padding:4px; font-size:75%')
   })
   
   output$Interactive_Unfilter_Region <- renderUI({
@@ -4089,7 +3635,8 @@ server <- function(input, output) {
     req(filtered_Region() != 0)
     
     actionButton(inputId = 'unfilterRegion',
-                 label = 'Unfilter Region')
+                 label = 'Unfilter Region',
+                 style='padding:4px; font-size:75%')
   })
   
   output$Interactive_Filter_Player <- renderUI({
@@ -4098,7 +3645,8 @@ server <- function(input, output) {
     req(filter_player() == 0)
     
     actionButton(inputId = 'filterPlayer',
-                 label = 'Filter Selected Player')
+                 label = 'Filter Selected Player',
+                 style='padding:4px; font-size:75%')
   })
   
   output$Interactive_Unfilter_Player <- renderUI({
@@ -4106,7 +3654,8 @@ server <- function(input, output) {
     req(filter_player() != 0)
     
     actionButton(inputId = 'unfilterPlayer',
-                 label = 'Unfilter Selected Player')
+                 label = 'Unfilter Selected Player',
+                 style='padding:4px; font-size:75%')
   })
   
   output$Interactive_Repick_Battlerites <- renderUI({
@@ -4114,7 +3663,8 @@ server <- function(input, output) {
     req(length(filtered_Battlerites$battlerites) > 0) 
     
     actionButton(inputId = 'unfilterBattlerites',
-                 label = 'Repick Battlerites')
+                 label = 'Repick Battlerites',
+                 style='padding:4px; font-size:75%')
     
   })
   
@@ -5869,7 +5419,8 @@ server <- function(input, output) {
   
   ally_comp_pre_agg <- reactive({
     
-
+    withProgress(message = 'Preliminary computations', value = 0, {
+    
     data <- filtered_data() %>%
       select(Game_ID, User_ID, Round_Won, Team_Comp, Server_Type, Team_Roles) %>%
       group_by(Game_ID, User_ID, Team_Comp, Server_Type, Team_Roles) %>%
@@ -5884,7 +5435,7 @@ server <- function(input, output) {
     
     }
     
-    if (input$measure == 'pickrate' & Pickrateadjusted_Comps_Matchups() == 1) {
+    if (input$measure == 'pickrate' & Pickrateadjusted_Comps() == 1) {
       
       data2 <- data %>%
         ungroup() %>%
@@ -5898,6 +5449,22 @@ server <- function(input, output) {
       
       data <- inner_join(x = data2, y = User_Games_Played(), by = c('User_ID' = 'User_ID'))
       
+      #Too many categories for larger data sets. To reduce computation time will only take a subset for larger
+      #data sets 
+
+      if (dim(data)[1] > 50) {
+        
+        subset_comps <- data %>%
+          ungroup() %>%
+          group_by(Team_Comp) %>%
+          summarize(Count = n()) %>%
+          arrange(desc(Count))
+        subset_comps <- head(subset_comps, 50)
+        
+        data <- filter(data, Team_Comp %in% subset_comps$Team_Comp)
+        
+      }
+      
       categories <- unique(pull(data, Team_Comp))
       num_unique_users <- length(unique(data$User_ID))
       
@@ -5905,9 +5472,12 @@ server <- function(input, output) {
       Pick_Rate = c()
       Sample_Size = c()
       
-      for (category in categories) {
+      for (i in 1:length(categories)) {
         
-        data2 <- filter(data, Team_Comp == category)
+        incProgress(1/(length(categories)), detail = paste0('Computing Pick_Rate for ', categories[i], ' (',
+                                                           i, ' of ', length(categories)))
+        
+        data2 <- filter(data, Team_Comp == categories[i])
         user_pick_rates <- c()
         
         #Check if user has picked any other category and compute probability accordingly
@@ -5923,7 +5493,7 @@ server <- function(input, output) {
         category_pick_rate <- sum(user_pick_rates)/num_unique_users
         sample_size <- length(user_pick_rates)
         
-        Category <- c(Category, category)
+        Category <- c(Category, as.character(categories[i]))
         Pick_Rate <- c(Pick_Rate, category_pick_rate)
         Sample_Size <- c(Sample_Size, sample_size)
       }
@@ -5937,6 +5507,7 @@ server <- function(input, output) {
       
     }
     
+    })
     
     data
     
@@ -5944,7 +5515,7 @@ server <- function(input, output) {
   
   ally_comp_agg <- reactive({
     
-    if (!(input$measure == 'pickrate' & Pickrateadjusted_Comps_Matchups() == 1)) {
+    if (!(input$measure == 'pickrate' & Pickrateadjusted_Comps() == 1)) {
 
     data <- ally_comp_pre_agg() %>%
       ungroup() %>%
@@ -5996,6 +5567,8 @@ server <- function(input, output) {
   enemy_comp_pre_agg <- reactive({
     req(!is.null(filtered_data()))
 
+    withProgress(message = 'Preliminary computations', value = 0, {
+    
     data <- filtered_data() %>%
       select(Game_ID, User_ID, Round_Won, Enemy_Comp, Server_Type, Enemy_Roles) %>%
       group_by(Game_ID, User_ID, Enemy_Comp, Server_Type, Enemy_Roles) %>%
@@ -6024,6 +5597,22 @@ server <- function(input, output) {
       
       data <- inner_join(x = data2, y = User_Games_Played(), by = c('User_ID' = 'User_ID'))
       
+      #Too many categories for larger data sets. To reduce computation time will only take a subset for larger
+      #data sets 
+      
+      if (dim(data)[1] > 50) {
+        
+        subset_comps <- data %>%
+          ungroup() %>%
+          group_by(Enemy_Comp) %>%
+          summarize(Count = n()) %>%
+          arrange(desc(Count))
+        subset_comps <- head(subset_comps, 50)
+        
+        data <- filter(data, Enemy_Comp %in% subset_comps$Enemy_Comp)
+        
+      }
+      
       categories <- unique(pull(data, Enemy_Comp))
       num_unique_users <- length(unique(data$User_ID))
       
@@ -6031,9 +5620,12 @@ server <- function(input, output) {
       Pick_Rate = c()
       Sample_Size = c()
       
-      for (category in categories) {
+      for (i in 1:length(categories)) {
         
-        data2 <- filter(data, Enemy_Comp == category)
+        incProgress(1/(length(categories)), detail = paste0('Computing Pick_Rate for ', categories[i], ' (',
+                                                            i, ' of ', length(categories)))
+        
+        data2 <- filter(data, Enemy_Comp == categories[i])
         user_pick_rates <- c()
         
         #Check if user has picked any other category and compute probability accordingly
@@ -6049,7 +5641,7 @@ server <- function(input, output) {
         category_pick_rate <- sum(user_pick_rates)/num_unique_users
         sample_size <- length(user_pick_rates)
         
-        Category <- c(Category, category)
+        Category <- c(Category, as.character(categories[i]))
         Pick_Rate <- c(Pick_Rate, category_pick_rate)
         Sample_Size <- c(Sample_Size, sample_size)
       }
@@ -6062,6 +5654,8 @@ server <- function(input, output) {
       data <- inner_join(x = data, y = extra_cols, by = c('Enemy_Comp' = 'Enemy_Comp'))
       
     }
+    
+    })
     
     data
     
@@ -6341,7 +5935,7 @@ server <- function(input, output) {
 
       }
       
-      if (input$measure == 'pickrate' & Pickrateadjusted_Comps_Matchups() == 1) {
+      if (input$measure == 'pickrate' & Pickrateadjusted_TeamRoles() == 1) {
         
         data2 <- data %>%
           ungroup() %>%
@@ -6404,7 +5998,7 @@ server <- function(input, output) {
   
   Allyroles_df <- reactive({
     
-    if (!(input$measure == 'pickrate' & Pickrateadjusted_Comps_Matchups() == 1)) {
+    if (!(input$measure == 'pickrate' & Pickrateadjusted_TeamRoles() == 1)) {
     data <- pre_agg_allyroles() %>%
       ungroup() %>%
       select(Team_Roles, Game_Won) %>%
@@ -6454,7 +6048,7 @@ server <- function(input, output) {
   
   Allyroles_best <- reactive({
     
-    if (!(input$measure == 'pickrate' & Pickrateadjusted_Comps_Matchups() == 1)) {
+    if (!(input$measure == 'pickrate' & Pickrateadjusted_TeamRoles() == 1)) {
     
     data <- pre_agg_allyroles() %>%
       ungroup() %>%
@@ -6507,7 +6101,7 @@ server <- function(input, output) {
   
   Allyroles_worst <- reactive({
     
-    if (!(input$measure == 'pickrate' & Pickrateadjusted_Comps_Matchups() == 1)) {
+    if (!(input$measure == 'pickrate' & Pickrateadjusted_TeamRoles() == 1)) {
     
     data <- pre_agg_allyroles() %>%
       ungroup() %>%
@@ -6874,7 +6468,7 @@ server <- function(input, output) {
     
       if (!(input_measure == 'pickrate' & pickrateadjusted == 1)) {
       
-    for (battlerite in c(names(filtered_data)[76:length(names(filtered_data))])) {
+    for (battlerite in c(names(filtered_data)[77:length(names(filtered_data))])) {
       
       
       

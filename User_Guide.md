@@ -22,6 +22,8 @@ Left click the "Choose Selected Data" button at the top right to choose the data
 
 **View Champion specific statistics**
 
+The 'Reset All Filters' button resets all current filters in one push
+
 ### Measures
 
 **Win rate:** Compute the win rates of various sub categories in each category filtered to the selected champion. Each user can count multiple times.

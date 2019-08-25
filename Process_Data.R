@@ -142,7 +142,8 @@ for (day in 10:17) {
     
     
     
-    write.csv(df, paste0('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Dashboard Data/2019/July/', day, '/', rawfilename))
+    write.csv(df, paste0('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects/Dashboard Data/2019/July/', 
+                         day, '/', rawfilename), fileEncoding="UTF-8")
     
     
   }

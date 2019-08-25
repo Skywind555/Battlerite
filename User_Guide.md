@@ -60,6 +60,8 @@ You can **double click** on a bar to **filter** the entire data to that value. *
 
 **Player data (Very bottom):** Click on a player to see all the games a player has played with the selected champion. A filter button appears if you want to filter the entire data to only include games with the player. A list of games that the player has played in appears. Clicking on a row (game) will allow you to see round specific data of the player and other players in that game. Selecting on a row in this new data table allows you to see the round level statistics and overall account information on the player.
 
+You can also type in a player's name to filter the results to the player or a part of a player's name.
+
 **Average Stats:**
 
 The number represents the average value per round except for:

@@ -7166,7 +7166,7 @@ server <- function(input, output) {
   output$Players_Game <- DT::renderDataTable(expr = {
     
     dat <- datatable(player_games(), selection = list(mode = 'single', target = 'cell'),
-                     options = list(searching = TRUE, paging = TRUE),
+                     options = list(searching = FALSE, paging = TRUE),
                      callback = JS(gsub("\n", "", paste0("table.on('click.dt', 'td', function() {
                                                          var row_=table.cell(this).index().row;
                                                          var col=table.cell(this).index().column;

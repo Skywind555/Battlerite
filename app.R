@@ -7163,6 +7163,20 @@ server <- function(input, output) {
     }
   )
   
+  #If champion change, reset all player table data
+  observeEvent(
+    eventExpr = input$champion,
+    handlerExpr = {
+      
+      filter_player(0)
+      player_selection(0)
+      game_selection(0)
+      round_selection(-1)
+      round_player_selection(0)
+      
+    }
+  )
+  
 
   #Player Games Table
   player_games <- reactive({

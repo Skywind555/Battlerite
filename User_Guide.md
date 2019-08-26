@@ -86,7 +86,7 @@ Use the double click filter on the Server_Type bar graph to filter the selection
 
 The results of the tables and block of text tries to filter the data to only include sub-categories of at least three observations, but if the data is not at least ten different sub-categories, it will try for 2 observations, and then default (1).
 
-When computing pick rate (adjusted) for the [long] indicated buttons, only the top 50 largest sample sized groups will be used. Without this measure, computation time can take 10+ minutes for the full range of data. So, the Top 5 least popular comps and matchups are not literally the least popular comps or matchups.
+When computing pick rate (adjusted) for the [long] indicated buttons, only the top 30 largest sample sized groups will be used. Without this measure, computation time can take 10+ minutes for the full range of data. So, the Top 5 least popular comps and matchups are not literally the least popular comps or matchups.
 
 ## Overall view
 

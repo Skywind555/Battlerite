@@ -80,7 +80,8 @@ ui <- navbarPage('Navbar',
                                    uiOutput('Interactive_Day17a'),
                                    uiOutput('Interactive_Day17b'))
                           ),
-                          fluidRow(htmlOutput('UserGuide'))
+                          fluidRow(htmlOutput('UserGuide'),
+                                   htmlOutput('Message'))
                  ),
                  tabPanel('Champion',
                           fluidRow(
@@ -631,6 +632,12 @@ server <- function(input, output) {
              target="_blank")
     
     tagList(url)
+    
+  })
+  
+  output$Message <- renderUI({
+    
+    HTML('<font size = "4"><b>Keep in mind that it is normal to see nothing happen after selecting a champion. It takes a while to process. </font></b>')
     
   })
   

@@ -627,7 +627,8 @@ server <- function(input, output) {
   output$UserGuide <- renderUI({
     
     url <- a("See The User Guide For Instructions and Functionality", 
-             href = 'https://github.com/Skywind555/Personal-Projects/blob/master/User_Guide.md')
+             href = 'https://github.com/Skywind555/Personal-Projects/blob/master/User_Guide.md',
+             target="_blank")
     
     tagList(url)
     

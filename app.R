@@ -993,6 +993,9 @@ server <- function(input, output) {
     df$League <- factor(df$League, levels = rev(c('Grand Champion', 'Champion', 'Diamond', 'Platinum', 'Gold',
                                                   'Silver', 'Bronze')), ordered = TRUE)
     
+    #Drop Duplicate rows of data (data collection error)
+    df <- distinct(df, Game_ID, User_ID, Round, .keep_all = TRUE)
+    
     data <- df
     
     }

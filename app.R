@@ -5465,14 +5465,14 @@ server <- function(input, output) {
       #Too many categories for larger data sets. To reduce computation time will only take a subset for larger
       #data sets 
 
-      if (dim(data)[1] > 50) {
+      if (dim(data)[1] > 30) {
         
         subset_comps <- data %>%
           ungroup() %>%
           group_by(Team_Comp) %>%
           summarize(Count = n()) %>%
           arrange(desc(Count))
-        subset_comps <- head(subset_comps, 50)
+        subset_comps <- head(subset_comps, 30)
         
         data <- filter(data, Team_Comp %in% subset_comps$Team_Comp)
         
@@ -5613,14 +5613,14 @@ server <- function(input, output) {
       #Too many categories for larger data sets. To reduce computation time will only take a subset for larger
       #data sets 
       
-      if (dim(data)[1] > 50) {
+      if (dim(data)[1] > 30) {
         
         subset_comps <- data %>%
           ungroup() %>%
           group_by(Enemy_Comp) %>%
           summarize(Count = n()) %>%
           arrange(desc(Count))
-        subset_comps <- head(subset_comps, 50)
+        subset_comps <- head(subset_comps, 30)
         
         data <- filter(data, Enemy_Comp %in% subset_comps$Enemy_Comp)
         

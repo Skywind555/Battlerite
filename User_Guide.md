@@ -44,9 +44,13 @@ Click on a point to filter the data to that region. An unfilter button will appe
 
 In general, you can **hover** the mouse over each bar in any bar graph to see the specific value of the bar and the number of observations.
 
+The hover information may be displaced from the mouse cursor depending on resolution of the computer? Unsure if this can be fixed.
+
 You can **double click** on a bar to **filter** the entire data to that value. **Single click** to **unfilter**.
 
 #### Specific Bar Plots
+
+**Total_Time_Played and Champion_Time_Played categories are in hours.
 
 **Battlerite Choice:** The color of the graph represents battlerite type same as in-game color. The initial view shows the win rate or pick rate of the indicated battlerite if a user took that battlerite as one of the five battlerites in their match. Double clicking on a battlerite (choosing the battlerite) allows you to see the next step up. Assuming that you pick that selected battlerite, the new values are now the win rate or pick rates of each indicated battlerite assuming that you selected the first battlerite. For adjusted win rate calculation, each user can contribute once in each category. For adjusted pick rate calculation, each user's most selected set of 5 battlerites are determined and that's their only contribution. 
 
@@ -61,8 +65,6 @@ You can **double click** on a bar to **filter** the entire data to that value. *
 **Player data (Very bottom):** Click on a player to see all the games a player has played with the selected champion. A filter button appears if you want to filter the entire data to only include games with the player. A list of games that the player has played in appears. Clicking on a row (game) will allow you to see round specific data of the player and other players in that game. Selecting on a row in this new data table allows you to see the round level statistics and overall account information on the player.
 
 You can also type in a player's name to filter the results to the player or a part of a player's name.
-
-Under the round statistics, the negative Time_Alive value means that the user has survived the round, otherwise number of seconds the user has survived into the round.
 
 **Average Stats:**
 
@@ -86,7 +88,7 @@ Use the double click filter on the Server_Type bar graph to filter the selection
 
 The results of the tables and block of text tries to filter the data to only include sub-categories of at least three observations, but if the data is not at least ten different sub-categories, it will try for 2 observations, and then default (1).
 
-When computing pick rate (adjusted) for the [long] indicated buttons, only the top 30 largest sample sized groups will be used. Without this measure, computation time can take 10+ minutes for the full range of data. So, the Top 5 least popular comps and matchups are not literally the least popular comps or matchups.
+When computing pick rate (adjusted) for the [long] indicated buttons, only the top 50 largest sample sized groups will be used. Without this measure, computation time can take 10+ minutes for the full range of data. So, the Top 5 least popular comps and matchups are not literally the least popular comps or matchups.
 
 ## Overall view
 

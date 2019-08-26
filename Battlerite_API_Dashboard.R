@@ -1555,7 +1555,7 @@ server <- function(input, output) {
       }
       
       if (filtered_regiongroup != 0) {
-        total_filtered <- c(total_filtered, list(c('Region Group', filtered_regiongroup)))
+        total_filtered <- c(total_filtered, list(c('Region Group', toString(filtered_regiongroup))))
       }
       
       if (filtered_playertype != 0) {

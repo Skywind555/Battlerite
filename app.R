@@ -11,7 +11,7 @@ library('readxl')
 library('leaflet')
 library('schoolmath')
 
-setwd('C:/Users/skywi/Desktop/Battlerite Project/Personal-Projects')
+setwd('/srv/shiny-server/Personal-Projects')
 
 #Get crosswalk reference files
 br_crosswalk <- read_csv('Reference Files/Battlerite_Crosswalk.csv')

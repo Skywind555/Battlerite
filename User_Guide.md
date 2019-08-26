@@ -62,6 +62,8 @@ You can **double click** on a bar to **filter** the entire data to that value. *
 
 You can also type in a player's name to filter the results to the player or a part of a player's name.
 
+Under the round statistics, the negative Time_Alive value means that the user has survived the round, otherwise number of seconds the user has survived into the round.
+
 **Average Stats:**
 
 The number represents the average value per round except for:

@@ -1,4 +1,5 @@
 Dashboard deployed on AWS viewable at http://shiny.battlerite.site/Personal-Projects/
+***Currently not deployed due to expensive cost***
 
 Note: The _V2 files are basically a slightly more complex script that includes information such as the number of R, EX1, EX2, and ultimate usages. I only managed to collect around two days of data with the new script located in the Data2 folder before API shut down. 
 

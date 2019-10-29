@@ -1,3 +1,7 @@
+This project used to pull data from a video game (Battlerite) API while it was still active (permenently dead now). 
+
+With the limited data that I collected, I built a complex R Shiny dashboard which you can only view now if you download the repo and run it on your local machine.
+
 Dashboard deployed on AWS viewable at http://shiny.battlerite.site/Personal-Projects/
 ***Currently not deployed due to expensive cost***
 

@@ -43,9 +43,15 @@ sklearn
 **BR Data Processing.ipynb** - Contains the initial data processing and transformation of the data located in the ../Data2 folder
 to a format used in the analysis.
 
+For better rendering on the jupyter notebook, use this [link](https://nbviewer.jupyter.org/github/Skywind555/Battlerite/blob/master/Blog%20Post%20Data%20Analysis/BR%20Data%20Processing.ipynb)
+
 **BR Data Analysis.ipynb** - Contains more data processing and analysis to answer two indepth questions about Battlerite.
 
+For better rendering on the jupyter notebook, use this [link](https://nbviewer.jupyter.org/github/Skywind555/Battlerite/blob/master/Blog%20Post%20Data%20Analysis/BR%20Data%20Analysis.ipynb)
+
 **BR Data Analysis2.ipynb** - Contains a statistical modeling script and analysis done for the third question.
+
+For better rendering on the jupyter notebook, use this [link](https://nbviewer.jupyter.org/github/Skywind555/Battlerite/blob/master/Blog%20Post%20Data%20Analysis/BR%20Data%20Analysis%202.ipynb)
 
 **Processed_Data_#.csv** - The split data from BR Data Processing.ipynb
 

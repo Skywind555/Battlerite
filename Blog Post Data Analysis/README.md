@@ -9,19 +9,33 @@ A [blog post](https://skywind555.github.io/Answering-Your-Battlerite-Questions-W
 **Python libraries used:**
 
 os
+
 glob
+
 pandas
+
 numpy
+
 math
+
 collections
+
 glob
+
 matplotlib.pyplot
+
 seaborn
+
 statsmodels
+
 scipy
+
 openpyxl
+
 warnings
+
 pylab
+
 sklearn
 
 ### **File Description**

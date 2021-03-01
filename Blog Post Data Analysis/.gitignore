@@ -1,0 +1,8 @@
+.ipynb_checkpoints/
+Confusion_Matrix.png
+Confusion_Matrix_Normalized.png
+Precision_Recall.png
+ROC.png
+Model_Building.py
+test_model.py
+testing.py

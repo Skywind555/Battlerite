@@ -10,16 +10,27 @@ Dashboard deployed on AWS viewable at http://shiny.battlerite.site/Personal-Proj
 **Libraries used for Python:**
 
 requests
+
 pandas
+
 numpy
+
 json
+
 datetime
+
 time
+
 os
+
 shutil
+
 math
+
 glob
+
 pathlib
+
 pygame
 
 **Libraries used for R:**

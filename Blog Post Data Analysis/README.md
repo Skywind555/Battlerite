@@ -4,7 +4,7 @@ This project was started and completed as part of the Data Scientist Nanodegree 
 choose this dataset because I had already collected it and always wanted to answer more questions about it, but never
 commited time and effort into it.
 
-A [blog post](https://skywind555.github.io/Answering-Your-Battlerite-Questions-With-Pro-Player-Skywind555/) was created to summarize results to a non-technical audience that is already familiar with Battlerite.
+A [blog post](https://skywind555.github.io/Answering-Your-Battlerite-Questions-With-Pro-Player-Skywind555/) was created to summarize results to a non-technical audience who are already familiar with Battlerite.
 
 **Python libraries used:**
 

@@ -82,6 +82,6 @@ folder.
 
 **Features_To_add.md** - Additional features to add to the R shiny dashboard (abandoned)
 
-### **Data Analysis Folder**
+### **Blog Post Data Analysis Folder**
 
 This folder contains another project using the data in the 'Data2' folder. It's linked to the [blog post](https://skywind555.github.io/Answering-Your-Battlerite-Questions-With-Pro-Player-Skywind555/) that I created.

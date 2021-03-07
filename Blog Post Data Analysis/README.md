@@ -6,6 +6,20 @@ commited time and effort into it.
 
 A [blog post](https://skywind555.github.io/Answering-Your-Battlerite-Questions-With-Pro-Player-Skywind555/) was created to summarize results to a non-technical audience who are already familiar with Battlerite.
 
+### **Summary of results**
+
+1. Does strict matchmaking actually improve the quality of matches?
+
+Yes - there is a higher proportion of 3-1/1-3 and 3-2/2-3 match scores when strict matchmaking is selected versus when it's not. Players are also more evenly matched within the game.
+
+2. How often do Triple DPS teams win against support teams in Solo Queue?
+
+Triple DPS wins 44% of the time versus Support teams overall. Melee, Melee, Ranged has the highest win rate out of the Triple DPS combinations. Within teams with only one support, Triple DPS teams perform best against Ranged, Ranged, Support (ranged), and the worst against Melee, Melee, Support (melee). Triple DPS teams should not be afraid to commit for kills because even winning rounds involve a high chance of trading kills.
+
+3. What are the most important features to determine the outcome of a round?
+
+Negative differences in Damage Taken between players in your team versus the enemy team and positive differences in Protection between players in your team versus the enemy team is most important in determining a round's outcome. In other words, minimizing Damage Taken and maximizing Protection values is most important.
+
 **Python libraries used:**
 
 os

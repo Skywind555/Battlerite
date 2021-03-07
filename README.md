@@ -36,16 +36,27 @@ pygame
 **Libraries used for R:**
 
 shiny
+
 dplyr
+
 readr
+
 forcats
+
 tidyr
+
 stringr
+
 readxl
+
 schoolmath
+
 ggplot2
+
 DT
+
 fastDummies
+
 leaflet
 
 
